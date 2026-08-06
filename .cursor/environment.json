@@ -1,4 +1,17 @@
 {
-  "install": "npm install",
-  "start": "npm run dev"
+  "name": "WS (Next.js)",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev",
+      "description": "Next.js 开发服务器，监听 http://localhost:3000"
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 3000
+    }
+  ]
 }
