@@ -37,6 +37,10 @@ src/
   environment.json  # Cursor Cloud Agent 环境配置
 ```
 
+## 海报资料
+
+后续战报 / 庆祝海报以 [`docs/posters/STYLE.md`](docs/posters/STYLE.md) 和 [`docs/posters/references/mobius-fire-hero.png`](docs/posters/references/mobius-fire-hero.png) 为准。
+
 ## Cursor 环境
 
 `.cursor/environment.json` 已配置：
