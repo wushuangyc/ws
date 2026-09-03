@@ -61,6 +61,7 @@ describe("target reverse planning", () => {
       model.target.targetIncrement + model.target.nextExpiryCancel,
     );
     assert.equal(model.target.projectedIncrement, 175);
+    // 期末总量只作内部轧账，不作为考核指标
     assert.equal(model.target.targetClosing, 843 + 175);
   });
 

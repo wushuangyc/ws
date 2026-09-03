@@ -289,12 +289,6 @@ function buildAudit(
       detail: `新成交留存 ${product.newRetained} − 到期解约 ${product.expiryCancel} = ${identity}，表内增量为 ${product.increment}`,
     });
     items.push({
-      id: `close-${product.id}`,
-      ok: product.closingOnline === product.openingOnline + product.increment,
-      label: `${product.name} 在网轧账`,
-      detail: `期初 ${product.openingOnline} + 增量 ${product.increment} = ${product.openingOnline + product.increment}，期末 ${product.closingOnline}`,
-    });
-    items.push({
       id: `renew-${product.id}`,
       ok: product.renewedCount + product.expiryCancel === product.expiringCount,
       label: `${product.name} 到期分流`,

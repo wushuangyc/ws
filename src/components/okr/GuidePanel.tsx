@@ -5,8 +5,8 @@ export function GuidePanel() {
         <h3 className="text-sm font-semibold text-slate-900">口径词典</h3>
         <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
           <li>
-            <strong className="text-slate-800">在网数（不去重）</strong>
-            ：按产品席位计，一人多产品计多次。+175 是席位净增，不是独立用户净增。
+            <strong className="text-slate-800">净增（不去重）</strong>
+            ：按产品席位计，一人多产品计多次。目标是席位净增 175，不是独立用户净增，也不考核在网总量。
           </li>
           <li>
             <strong className="text-slate-800">新进量</strong>
@@ -52,7 +52,7 @@ export function GuidePanel() {
         <h3 className="text-sm font-semibold text-slate-900">建议 OKR 结构</h3>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           <strong className="text-slate-800">O：</strong>
-          9–10 月在网席位净增 175，期末在网达到目标值，且不靠牺牲续费或抬高付费 CPL 换量。
+          9–10 月在网用户净增 175，且不靠牺牲续费或抬高付费 CPL 换量。不考核现有或目标在网总量。
         </p>
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-600">
           <li>KR1 新成交留存完成需净留存成交（覆盖到期解约后仍净增 175）。</li>
@@ -71,7 +71,7 @@ export function GuidePanel() {
             到期看「WIFI在网设备」终止日。
           </li>
           <li>
-            号卡/宽带/电力没有在网台账，期初用 2026 上半年新购+复购累计，是下限不是全量库存。
+            号卡/宽带/电力没有在网台账；期初库存只用于引擎内部轧账，不进入考核。
           </li>
           <li>解约表最新到 6 月，7–8 月新成交解约按 0；补上 8 月解约后请改「新成交解约」。</li>
           <li>表内无投放成本，付费预算需手工填「上期付费线索总成本」才会算出金额。</li>

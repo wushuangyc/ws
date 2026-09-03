@@ -17,12 +17,11 @@ export function ProductBaselineTable({
 }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="min-w-[1280px] w-full border-collapse text-sm">
+      <table className="min-w-[1180px] w-full border-collapse text-sm">
         <thead className="bg-slate-50 text-left text-xs tracking-wide text-slate-500">
           <tr>
             <th className="px-3 py-3 font-medium">产品</th>
             <th className="px-3 py-3 font-medium">客单价</th>
-            <th className="px-3 py-3 font-medium">期初在网</th>
             <th className="px-3 py-3 font-medium">线索量</th>
             <th className="px-3 py-3 font-medium">新进/成交</th>
             <th className="px-3 py-3 font-medium">转化率</th>
@@ -32,7 +31,6 @@ export function ProductBaselineTable({
             <th className="px-3 py-3 font-medium">续费</th>
             <th className="px-3 py-3 font-medium">到期解约</th>
             <th className="px-3 py-3 font-medium">增量</th>
-            <th className="px-3 py-3 font-medium">期末在网</th>
             <th className="px-3 py-3 font-medium">下期到期</th>
             <th className="px-3 py-3 font-medium">付费占比</th>
             <th className="px-3 py-3 font-medium">战略权重</th>
@@ -58,13 +56,6 @@ export function ProductBaselineTable({
                     ariaLabel={`${product.name}客单价`}
                     value={product.ticketPrice}
                     onChange={(ticketPrice) => onChange(product.id, { ticketPrice })}
-                  />
-                </td>
-                <td className="px-3 py-3">
-                  <NumberField
-                    ariaLabel={`${product.name}期初在网`}
-                    value={product.openingOnline}
-                    onChange={(openingOnline) => onChange(product.id, { openingOnline })}
                   />
                 </td>
                 <td className="px-3 py-3">
@@ -126,7 +117,6 @@ export function ProductBaselineTable({
                 <td className="px-3 py-3 font-mono font-semibold text-slate-900">
                   {formatSigned(derived.increment)}
                 </td>
-                <td className="px-3 py-3 font-mono">{formatInt(derived.closingOnline)}</td>
                 <td className="px-3 py-3">
                   <NumberField
                     ariaLabel={`${product.name}下期到期`}
@@ -169,7 +159,6 @@ export function ProductBaselineTable({
             <td className="px-3 py-3 text-xs text-slate-500">
               新成交收入 {formatMoney(model.baseline.newDealRevenue)}
             </td>
-            <td className="px-3 py-3 font-mono">{formatInt(model.baseline.openingOnline)}</td>
             <td className="px-3 py-3 font-mono">{formatInt(model.baseline.leads)}</td>
             <td className="px-3 py-3 font-mono">{formatInt(model.baseline.newDeals)}</td>
             <td className="px-3 py-3 font-mono">{formatPct(model.baseline.conversionRate)}</td>
@@ -183,7 +172,6 @@ export function ProductBaselineTable({
               {formatInt(model.baseline.expiryCancel)}
             </td>
             <td className="px-3 py-3 font-mono">{formatSigned(model.baseline.increment)}</td>
-            <td className="px-3 py-3 font-mono">{formatInt(model.baseline.closingOnline)}</td>
             <td className="px-3 py-3 font-mono">
               {formatInt(model.target.nextExpiring)}
             </td>

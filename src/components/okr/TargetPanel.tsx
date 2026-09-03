@@ -7,7 +7,7 @@ export function TargetPanel({ model }: { model: OkrModel }) {
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-[1100px] w-full border-collapse text-sm">
+        <table className="min-w-[980px] w-full border-collapse text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-500">
             <tr>
               <th className="px-3 py-3 font-medium">产品</th>
@@ -19,7 +19,6 @@ export function TargetPanel({ model }: { model: OkrModel }) {
               <th className="px-3 py-3 font-medium">有效转化率</th>
               <th className="px-3 py-3 font-medium">需线索</th>
               <th className="px-3 py-3 font-medium">付费线索</th>
-              <th className="px-3 py-3 font-medium">预计期末</th>
             </tr>
           </thead>
           <tbody>
@@ -46,7 +45,6 @@ export function TargetPanel({ model }: { model: OkrModel }) {
                   </div>
                 </td>
                 <td className="px-3 py-3 font-mono">{formatInt(product.paidLeadsNeeded)}</td>
-                <td className="px-3 py-3 font-mono">{formatInt(product.projectedClosing)}</td>
               </tr>
             ))}
           </tbody>
@@ -61,7 +59,6 @@ export function TargetPanel({ model }: { model: OkrModel }) {
               <td className="px-3 py-3 text-xs text-slate-500">含转化缓冲</td>
               <td className="px-3 py-3 font-mono">{formatInt(model.target.requiredLeads)}</td>
               <td className="px-3 py-3 font-mono">{formatInt(model.target.paidLeadsByMix)}</td>
-              <td className="px-3 py-3 font-mono">{formatInt(model.target.targetClosing)}</td>
             </tr>
           </tfoot>
         </table>

@@ -123,9 +123,9 @@ export function OkrWorkbench() {
                 在网增长工作台
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                统计周期 {state.company.baselineStart} 至 {state.company.baselineEnd} 为基线，
-                {state.company.targetStart} 至 {state.company.targetEnd} 为承诺期。
-                产品为电力、号卡、WIFI、宽带，已按 MOBIUS 业绩表 7–8 月实数汇总；改数后即时重算并保存在本机。
+                唯一目标：9–10 月在网用户净增 {formatInt(state.company.targetIncrement)}。
+                不考核现有或目标在网总量；总量只在公式里用来反推成交和到期流失。
+                产品为电力、号卡、WIFI、宽带，底数来自 MOBIUS 业绩表 7–8 月。
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -200,26 +200,30 @@ export function OkrWorkbench() {
           <SectionTitle
             id="overview-title"
             kicker="01 总览"
-            title="先把净增 175 拆成可核对的关键成果"
+            title={`先把净增 ${formatInt(state.company.targetIncrement)} 拆成成交、续费和线索`}
             description={model.scenario.hint}
           />
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <KpiCard
               tone="navy"
-              label="目标期末在网"
-              value={formatInt(model.target.targetClosing)}
-              hint={`现有在网 ${formatInt(model.baseline.closingOnline)} + ${formatInt(model.target.targetIncrement)}`}
+              label="目标净增（唯一承诺）"
+              value={formatSigned(model.target.targetIncrement)}
+              hint="只盯净增，不盯在网总量"
             />
             <KpiCard
               tone="teal"
-              label="基线净增 / 目标净增"
-              value={`${formatSigned(model.baseline.increment)} / ${formatSigned(model.target.targetIncrement)}`}
-              hint={`相对基线还需多净增 ${formatInt(model.target.targetIncrement - model.baseline.increment)}`}
+              label="上期净增（7–8 月）"
+              value={formatSigned(model.baseline.increment)}
+              hint={
+                model.baseline.increment >= model.target.targetIncrement
+                  ? "上期已高于目标，下期关键是补到期流失、把结构调过来"
+                  : `相对上期还需多净增 ${formatInt(model.target.targetIncrement - model.baseline.increment)}`
+              }
             />
             <KpiCard
               label="需净留存成交"
               value={formatInt(model.target.requiredRetained)}
-              hint={`175 + 下期到期解约 ${formatInt(model.target.nextExpiryCancel)}`}
+              hint={`${formatInt(model.target.targetIncrement)} + 下期到期解约 ${formatInt(model.target.nextExpiryCancel)}`}
             />
             <KpiCard
               tone="amber"
@@ -236,27 +240,21 @@ export function OkrWorkbench() {
           </div>
           <div className="grid gap-4 xl:grid-cols-2">
             <WaterfallChart
-              title="基线轧账：7–8 月在网如何从期初走到期末"
+              title="上期净增怎么来的：新成交留存 − 到期解约"
               steps={[
-                { label: "期初在网", value: model.baseline.openingOnline, tone: "base" },
-                { label: "新成交", value: model.baseline.newDeals, tone: "up" },
+                { label: "新成交", value: model.baseline.newDeals, tone: "base" },
                 { label: "新成交解约", value: -model.baseline.newCancel, tone: "down" },
                 { label: "到期解约", value: -model.baseline.expiryCancel, tone: "down" },
-                { label: "期末在网", value: model.baseline.closingOnline, tone: "end" },
+                { label: "净增", value: model.baseline.increment, tone: "end" },
               ]}
             />
             <WaterfallChart
-              title="目标轧账：用留存成交覆盖到期流失后仍净增 175"
+              title="下期怎么打到目标：净增 + 到期流失 = 需留存成交"
               steps={[
-                { label: "期初（8月末）", value: model.target.openingOnline, tone: "base" },
-                { label: "需毛成交", value: model.target.requiredGrossDeals, tone: "up" },
-                {
-                  label: "隐含新解约",
-                  value: -(model.target.requiredGrossDeals - model.target.requiredRetained),
-                  tone: "down",
-                },
-                { label: "到期解约", value: -model.target.nextExpiryCancel, tone: "down" },
-                { label: "目标期末", value: model.target.targetClosing, tone: "end" },
+                { label: "目标净增", value: model.target.targetIncrement, tone: "base" },
+                { label: "补到期解约", value: model.target.nextExpiryCancel, tone: "up" },
+                { label: "需净留存", value: model.target.requiredRetained, tone: "end" },
+                { label: "需毛成交", value: model.target.requiredGrossDeals, tone: "end" },
               ]}
             />
           </div>
@@ -320,7 +318,7 @@ export function OkrWorkbench() {
             id="baseline-title"
             kicker="02 基线盘点"
             title="7 月 1 日–8 月 31 日产品台账"
-            description="在网不去重。转化率、留存率、续费率由件数反算。改左侧输入即可重算增量与期末在网。"
+            description="只看增量：新成交留存 − 到期解约。转化率、留存率、续费率由件数反算。期初/期末总量不进入本表。"
           />
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard label="线索总量" value={formatInt(model.baseline.leads)} />
@@ -405,8 +403,8 @@ export function OkrWorkbench() {
           <SectionTitle
             id="target-title"
             kicker="04 目标推演"
-            title="从 +175 反推各产品线索与成交"
-            description="增量按战略权重拆到产品；每条产品先补下期到期解约，再倒推毛成交和线索。"
+            title={`从净增 ${formatSigned(state.company.targetIncrement)} 反推各产品线索与成交`}
+            description="不推在网总量。先按战略权重拆净增，再补下期到期解约，倒推毛成交和线索。"
           />
           <TargetPanel model={model} />
         </section>
@@ -430,7 +428,7 @@ export function OkrWorkbench() {
             id="guide-title"
             kicker="06 口径与方案"
             title="把这套数当成经营模型，而不是一张静态报表"
-            description="下列词典、修正和建议 OKR 是基于会员/课程/交付类业务的常见坑整理的，可直接贴进评审材料。"
+            description="考核的是净增 175，不是在网总量。下列词典和公式可直接贴进评审材料。"
           />
           <GuidePanel />
         </section>
@@ -439,12 +437,16 @@ export function OkrWorkbench() {
       <div className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-3 text-xs sm:grid-cols-4 sm:px-6 lg:px-8">
           <p>
-            <span className="text-slate-500">目标期末</span>{" "}
-            <span className="font-mono font-semibold">{formatInt(model.target.targetClosing)}</span>
+            <span className="text-slate-500">目标净增</span>{" "}
+            <span className="font-mono font-semibold">
+              {formatSigned(model.target.targetIncrement)}
+            </span>
           </p>
           <p>
-            <span className="text-slate-500">需线索</span>{" "}
-            <span className="font-mono font-semibold">{formatInt(model.target.requiredLeads)}</span>
+            <span className="text-slate-500">上期净增</span>{" "}
+            <span className="font-mono font-semibold">
+              {formatSigned(model.baseline.increment)}
+            </span>
           </p>
           <p>
             <span className="text-slate-500">建议编制</span>{" "}
