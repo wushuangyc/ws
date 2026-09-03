@@ -2,14 +2,32 @@
 
 按自然月经营：7 月、8 月是两个独立参考月，用来看趋势，**不是**「7+8 合成上个周期」。规划月是 9、10、11 月，净增目标分别为 175、200、225。
 
-## 本地运行
+## 在自己电脑里打开
+
+先安装 [Node.js 20 或更新](https://nodejs.org/)（安装时勾选 npm）。然后打开终端，进入你放代码的文件夹：
 
 ```bash
+git clone https://github.com/wushuangyc/ws.git
+cd ws
+git checkout cursor/okr-workbench-html-c8bd
 npm install
 npm run dev
 ```
 
-打开 [http://localhost:3000](http://localhost:3000)。云代理里请用 Cursor 页面上的 **Demo / 预览**（端口 3000），不要在自己电脑上打开 `localhost:3000`。
+浏览器打开 [http://localhost:3000](http://localhost:3000)。
+
+如果仓库已经克隆过，改成：
+
+```bash
+cd ws
+git fetch origin
+git checkout cursor/okr-workbench-html-c8bd
+git pull origin cursor/okr-workbench-html-c8bd
+npm install
+npm run dev
+```
+
+没有 Git 时，到 [这个 PR](https://github.com/wushuangyc/ws/pull/4) 点 `Code` → `Download ZIP`，解压后在该文件夹里执行 `npm install` 和 `npm run dev`。
 
 公式自检：
 
