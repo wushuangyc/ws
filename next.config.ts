@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
     "*.static-cursor.com",
     "*.trycloudflare.com",
     "*.loca.lt",
+    "*.lhr.life",
   ],
   agentRules: false,
 };
