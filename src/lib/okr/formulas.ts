@@ -1,13 +1,20 @@
+import { monthLabel, PLAN_MONTHS, REFERENCE_MONTHS } from "./calendar";
 import { clamp, ratio } from "./format";
+import { personLeadsIn } from "./mock-data";
 import type {
   AuditItem,
   CompanyInput,
+  MonthPlan,
+  MonthSnapshot,
   OkrModel,
   OkrState,
   PersonInput,
+  PlanMonthId,
   ProductBaseline,
   ProductInput,
+  ProductMonthInput,
   ProductTarget,
+  ReferenceMonthId,
   ScenarioConfig,
   ScenarioId,
 } from "./types";
@@ -16,7 +23,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioConfig> = {
   conservative: {
     id: "conservative",
     label: "保守",
-    hint: "转化、留存、续费、人效均按历史打九折左右，用于排兵布阵留缓冲。",
+    hint: "转化、留存、续费、人效按最近完整月打九折左右，用于排兵布阵留缓冲。",
     conversion: 0.9,
     retention: 0.95,
     renewal: 0.95,
@@ -25,7 +32,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioConfig> = {
   base: {
     id: "base",
     label: "基准",
-    hint: "沿用 7–8 月转化、留存、续费与人效，作为正式 OKR 主方案。",
+    hint: "沿用最近完整月（8月）转化、留存、续费与人效，作为正式 OKR 主方案。7月只作趋势对照。",
     conversion: 1,
     retention: 1,
     renewal: 1,
@@ -66,21 +73,26 @@ export function allocateByWeight(total: number, weights: number[]): number[] {
   return result;
 }
 
-function deriveProduct(product: ProductInput): ProductBaseline {
-  const conversionRate = ratio(product.newDeals, product.leads);
-  const newCancelRate = ratio(product.newCancel, product.newDeals);
-  const newRetained = product.newDeals - product.newCancel;
-  const newRetentionRate = ratio(newRetained, product.newDeals);
-  const expiryCancel = product.expiringCount - product.renewedCount;
-  const expiryCancelRate = ratio(expiryCancel, product.expiringCount);
-  const renewalRate = ratio(product.renewedCount, product.expiringCount);
+function deriveProduct(product: ProductInput, actual: ProductMonthInput): ProductBaseline {
+  const conversionRate = ratio(actual.newDeals, actual.leads);
+  const newCancelRate = ratio(actual.newCancel, actual.newDeals);
+  const newRetained = actual.newDeals - actual.newCancel;
+  const newRetentionRate = ratio(newRetained, actual.newDeals);
+  const expiryCancel = actual.expiringCount - actual.renewedCount;
+  const expiryCancelRate = ratio(expiryCancel, actual.expiringCount);
+  const renewalRate = ratio(actual.renewedCount, actual.expiringCount);
   const increment = newRetained - expiryCancel;
   const closingOnline = product.openingOnline + increment;
-  const paidLeads = product.leads * product.paidLeadShare;
-  const organicLeads = product.leads - paidLeads;
+  const paidLeads = actual.leads * actual.paidLeadShare;
+  const organicLeads = actual.leads - paidLeads;
 
   return {
-    ...product,
+    id: product.id,
+    name: product.name,
+    ticketPrice: product.ticketPrice,
+    openingOnline: product.openingOnline,
+    strategicWeight: product.strategicWeight,
+    ...actual,
     conversionRate,
     newCancelRate,
     newRetained,
@@ -92,8 +104,8 @@ function deriveProduct(product: ProductInput): ProductBaseline {
     closingOnline,
     paidLeads,
     organicLeads,
-    newDealRevenue: product.newDeals * product.ticketPrice,
-    renewalRevenue: product.renewedCount * product.ticketPrice,
+    newDealRevenue: actual.newDeals * product.ticketPrice,
+    renewalRevenue: actual.renewedCount * product.ticketPrice,
   };
 }
 
@@ -105,55 +117,72 @@ function rateOr(value: number, fallback: number): number {
   return clamp(value, 0.01, 0.99) || fallback;
 }
 
-export function buildOkrModel(state: OkrState): OkrModel {
-  const scenario = SCENARIOS[state.company.scenario] ?? SCENARIOS.base;
-  const products = state.products.map(deriveProduct);
-  const openingOnline = sumBy(products, (row) => row.openingOnline);
-  const closingOnline = sumBy(products, (row) => row.closingOnline);
-  const increment = sumBy(products, (row) => row.increment);
-  const leads = sumBy(products, (row) => row.leads);
-  const newDeals = sumBy(products, (row) => row.newDeals);
-  const newCancel = sumBy(products, (row) => row.newCancel);
-  const newRetained = sumBy(products, (row) => row.newRetained);
-  const expiringCount = sumBy(products, (row) => row.expiringCount);
-  const renewedCount = sumBy(products, (row) => row.renewedCount);
-  const expiryCancel = sumBy(products, (row) => row.expiryCancel);
-  const paidLeads = sumBy(products, (row) => row.paidLeads);
-  const organicLeads = sumBy(products, (row) => row.organicLeads);
-  const newDealRevenue = sumBy(products, (row) => row.newDealRevenue);
-  const renewalRevenue = sumBy(products, (row) => row.renewalRevenue);
+function snapshotFor(
+  month: ReferenceMonthId,
+  products: ProductInput[],
+  paidCpl: number,
+): MonthSnapshot {
+  const derived = products.map((product) => deriveProduct(product, product.actuals[month]));
+  const newDeals = sumBy(derived, (row) => row.newDeals);
+  const newRetained = sumBy(derived, (row) => row.newRetained);
+  const leads = sumBy(derived, (row) => row.leads);
+  const expiringCount = sumBy(derived, (row) => row.expiringCount);
+  const renewedCount = sumBy(derived, (row) => row.renewedCount);
+  const paidLeads = sumBy(derived, (row) => row.paidLeads);
+  return {
+    month,
+    label: monthLabel(month),
+    products: derived,
+    increment: sumBy(derived, (row) => row.increment),
+    leads,
+    newDeals,
+    newCancel: sumBy(derived, (row) => row.newCancel),
+    newRetained,
+    newRetentionRate: ratio(newRetained, newDeals),
+    conversionRate: ratio(newDeals, leads),
+    expiringCount,
+    renewedCount,
+    expiryCancel: sumBy(derived, (row) => row.expiryCancel),
+    renewalRate: ratio(renewedCount, expiringCount),
+    paidLeads,
+    organicLeads: sumBy(derived, (row) => row.organicLeads),
+    paidShare: ratio(paidLeads, leads),
+    newDealRevenue: sumBy(derived, (row) => row.newDealRevenue),
+    renewalRevenue: sumBy(derived, (row) => row.renewalRevenue),
+    paidCpl,
+    openingOnline: sumBy(derived, (row) => row.openingOnline),
+    closingOnline: sumBy(derived, (row) => row.closingOnline),
+  };
+}
 
-  const frontend = state.people.filter((person) => person.role === "frontend");
-  const backend = state.people.filter((person) => person.role === "backend");
-  const leadsHandled = sumBy(state.people, (person) => person.newLeadsHandled);
-  const totalGroup = sumBy(state.people, (person) => person.groupChats);
-  const totalPrivate = sumBy(state.people, (person) => person.privateChats);
-  const totalHandoff = totalGroup + totalPrivate;
-  const avgLeadsPerFrontend = ratio(leads, frontend.length);
-  const avgHandoffPerPerson = ratio(totalHandoff, state.people.length);
-  const avgHandoffFrontend = ratio(
-    sumBy(frontend, (person) => person.groupChats + person.privateChats),
-    frontend.length,
-  );
-
+function buildPlan(args: {
+  month: PlanMonthId;
+  targetIncrement: number;
+  products: ProductInput[];
+  rate: MonthSnapshot;
+  scenario: ScenarioConfig;
+  conversionBuffer: number;
+  organicLeadCapacity: number;
+  previousPaidLeadCost: number;
+  frontendCount: number;
+  backendCount: number;
+  avgLeadsPerFrontend: number;
+}): MonthPlan {
   const incrementShares = allocateByWeight(
-    state.company.targetIncrement,
-    products.map((product) => product.strategicWeight),
+    args.targetIncrement,
+    args.rate.products.map((product) => product.strategicWeight),
   );
 
-  const targetProducts: ProductTarget[] = products.map((product, index) => {
-    const effectiveRetention = rateOr(
-      product.newRetentionRate * scenario.retention,
-      0.8,
-    );
+  const targetProducts: ProductTarget[] = args.rate.products.map((product, index) => {
+    const source = args.products.find((row) => row.id === product.id);
+    const plannedExpiry = source?.plannedExpiry[args.month] ?? 0;
+    const effectiveRetention = rateOr(product.newRetentionRate * args.scenario.retention, 0.8);
     const effectiveConversion = rateOr(
-      product.conversionRate * scenario.conversion * state.company.conversionBuffer,
+      product.conversionRate * args.scenario.conversion * args.conversionBuffer,
       0.08,
     );
-    const effectiveRenewal = rateOr(product.renewalRate * scenario.renewal, 0.5);
-    const nextExpiryCancel = Math.round(
-      product.nextExpiringCount * (1 - effectiveRenewal),
-    );
+    const effectiveRenewal = rateOr(product.renewalRate * args.scenario.renewal, 0.5);
+    const nextExpiryCancel = Math.round(plannedExpiry * (1 - effectiveRenewal));
     const incrementShare = incrementShares[index] ?? 0;
     const requiredRetained = incrementShare + nextExpiryCancel;
     const requiredGrossDeals = Math.ceil(ratio(requiredRetained, effectiveRetention));
@@ -181,50 +210,108 @@ export function buildOkrModel(state: OkrState): OkrModel {
     };
   });
 
-  const nextExpiring = sumBy(products, (row) => row.nextExpiringCount);
+  const nextExpiring = sumBy(args.products, (row) => row.plannedExpiry[args.month]);
   const nextExpiryCancel = sumBy(targetProducts, (row) => row.nextExpiryCancel);
   const requiredRetained = sumBy(targetProducts, (row) => row.requiredRetained);
   const requiredGrossDeals = sumBy(targetProducts, (row) => row.requiredGrossDeals);
   const requiredLeads = sumBy(targetProducts, (row) => row.requiredLeads);
   const paidLeadsByMix = sumBy(targetProducts, (row) => row.paidLeadsNeeded);
-  const organicCapacity = Math.max(0, state.company.organicLeadCapacity);
+  const organicCapacity = Math.max(0, args.organicLeadCapacity);
   const organicLeadsPlanned = Math.min(organicCapacity, requiredLeads);
   const paidLeadsByResidual = Math.max(0, requiredLeads - organicLeadsPlanned);
   const projectedIncrement = sumBy(targetProducts, (row) => row.projectedIncrement);
-  const projectedClosing = closingOnline + projectedIncrement;
-
-  const frontendCapacity = avgLeadsPerFrontend * scenario.capacity;
+  const frontendCapacity = args.avgLeadsPerFrontend * args.scenario.capacity;
   const frontendNeeded = ratio(requiredLeads, frontendCapacity);
-  const backendNeeded = ratio(requiredGrossDeals, newDeals) * backend.length;
-
-  const paidCostOriginal = ratio(paidLeadsByMix, leads) * state.company.previousPaidLeadCost;
-  const historicalCpl = ratio(state.company.previousPaidLeadCost, paidLeads);
+  const backendNeeded = ratio(requiredGrossDeals, args.rate.newDeals) * args.backendCount;
+  const historicalCpl = args.rate.paidCpl;
+  const paidCostOriginal = ratio(paidLeadsByMix, args.rate.leads) * args.previousPaidLeadCost;
   const paidCostCorrectedMix = paidLeadsByMix * historicalCpl;
   const paidCostCorrectedResidual = paidLeadsByResidual * historicalCpl;
 
-  const model: OkrModel = {
-    baseline: {
-      products,
-      openingOnline,
-      closingOnline,
-      increment,
-      leads,
-      newDeals,
-      newCancel,
-      newRetained,
-      newRetentionRate: ratio(newRetained, newDeals),
-      conversionRate: ratio(newDeals, leads),
-      expiringCount,
-      renewedCount,
-      expiryCancel,
-      renewalRate: ratio(renewedCount, expiringCount),
-      paidLeads,
-      organicLeads,
-      paidShare: ratio(paidLeads, leads),
-      newDealRevenue,
-      renewalRevenue,
-      paidCpl: historicalCpl,
-    },
+  return {
+    month: args.month,
+    label: monthLabel(args.month),
+    products: targetProducts,
+    targetIncrement: args.targetIncrement,
+    nextExpiring,
+    nextExpiryCancel,
+    requiredRetained,
+    requiredGrossDeals,
+    requiredLeads,
+    paidLeadsByMix,
+    paidLeadsByResidual,
+    organicLeadsPlanned,
+    projectedIncrement,
+    projectedClosing: args.rate.closingOnline + projectedIncrement,
+    frontendNeeded,
+    frontendNeededCeil: Math.ceil(frontendNeeded),
+    backendNeeded,
+    backendNeededCeil: Math.ceil(backendNeeded),
+    paidCostOriginal,
+    paidCostCorrectedMix,
+    paidCostCorrectedResidual,
+    recommendedPaidLeads: paidLeadsByResidual,
+    recommendedPaidCost: paidCostCorrectedResidual,
+    openingOnline: args.rate.closingOnline,
+    targetClosing: args.rate.closingOnline + args.targetIncrement,
+  };
+}
+
+export function buildOkrModel(state: OkrState): OkrModel {
+  const scenario = SCENARIOS[state.company.scenario] ?? SCENARIOS.base;
+  const rateMonth: ReferenceMonthId = state.company.rateMonth === "2026-07" ? "2026-07" : "2026-08";
+  const paidLeadsRate = sumBy(state.products, (product) => {
+    const actual = product.actuals[rateMonth];
+    return actual.leads * actual.paidLeadShare;
+  });
+  const historicalCpl = ratio(state.company.previousPaidLeadCost, paidLeadsRate);
+
+  const july = snapshotFor("2026-07", state.products, historicalCpl);
+  const august = snapshotFor("2026-08", state.products, historicalCpl);
+  const references = [july, august];
+  const baseline = rateMonth === "2026-07" ? july : august;
+
+  const frontend = state.people.filter((person) => person.role === "frontend");
+  const backend = state.people.filter((person) => person.role === "backend");
+  const julyLeads = sumBy(state.people, (person) => person.julyLeads);
+  const augustLeads = sumBy(state.people, (person) => person.augustLeads);
+  const leadsHandled = sumBy(state.people, (person) => personLeadsIn(person, rateMonth));
+  const totalGroup = sumBy(state.people, (person) => person.groupChats);
+  const totalPrivate = leadsHandled;
+  const totalHandoff = totalGroup + totalPrivate;
+  const avgLeadsPerFrontend = ratio(baseline.leads, frontend.length);
+  const avgHandoffPerPerson = ratio(totalHandoff, state.people.length);
+  const avgHandoffFrontend = ratio(
+    sumBy(frontend, (person) => person.groupChats + personLeadsIn(person, rateMonth)),
+    frontend.length,
+  );
+
+  const plans = PLAN_MONTHS.map((row) =>
+    buildPlan({
+      month: row.id,
+      targetIncrement: state.company.monthTargets[row.id] ?? row.defaultTarget,
+      products: state.products,
+      rate: baseline,
+      scenario,
+      conversionBuffer: state.company.conversionBuffer,
+      organicLeadCapacity: state.company.organicLeadCapacity,
+      previousPaidLeadCost: state.company.previousPaidLeadCost,
+      frontendCount: frontend.length,
+      backendCount: backend.length,
+      avgLeadsPerFrontend,
+    }),
+  );
+
+  const planningMonth: PlanMonthId = PLAN_MONTHS.some((row) => row.id === state.company.planningMonth)
+    ? state.company.planningMonth
+    : "2026-09";
+  const target = plans.find((plan) => plan.month === planningMonth) ?? plans[0];
+
+  return {
+    july,
+    august,
+    references,
+    baseline,
     people: {
       list: state.people,
       frontend,
@@ -238,99 +325,61 @@ export function buildOkrModel(state: OkrState): OkrModel {
       totalGroup,
       totalPrivate,
       totalHandoff,
+      julyLeads,
+      augustLeads,
     },
-    target: {
-      products: targetProducts,
-      openingOnline: closingOnline,
-      targetClosing: closingOnline + state.company.targetIncrement,
-      targetIncrement: state.company.targetIncrement,
-      nextExpiring,
-      nextExpiryCancel,
-      requiredRetained,
-      requiredGrossDeals,
-      requiredLeads,
-      paidLeadsByMix,
-      paidLeadsByResidual,
-      organicLeadsPlanned,
-      projectedIncrement,
-      projectedClosing,
-      frontendNeeded,
-      frontendNeededCeil: Math.ceil(frontendNeeded),
-      backendNeeded,
-      backendNeededCeil: Math.ceil(backendNeeded),
-      paidCostOriginal,
-      paidCostCorrectedMix,
-      paidCostCorrectedResidual,
-      recommendedPaidLeads: paidLeadsByResidual,
-      recommendedPaidCost: paidCostCorrectedResidual,
-    },
-    audit: buildAudit(state.company, products, state.people, leadsHandled, leads),
+    plans,
+    target,
+    audit: buildAudit(state.company, [july, august], state.people, leadsHandled, baseline.leads),
     scenario,
   };
-
-  return model;
 }
 
 function buildAudit(
   company: CompanyInput,
-  products: ProductBaseline[],
+  months: MonthSnapshot[],
   people: PersonInput[],
   leadsHandled: number,
   productLeads: number,
 ): AuditItem[] {
   const items: AuditItem[] = [];
 
-  products.forEach((product) => {
-    const identity = product.newRetained - product.expiryCancel;
-    items.push({
-      id: `inc-${product.id}`,
-      ok: identity === product.increment,
-      label: `${product.name} 增量恒等式`,
-      detail: `新成交留存 ${product.newRetained} − 到期解约 ${product.expiryCancel} = ${identity}，表内增量为 ${product.increment}`,
+  months.forEach((snapshot) => {
+    snapshot.products.forEach((product) => {
+      const identity = product.newRetained - product.expiryCancel;
+      items.push({
+        id: `inc-${snapshot.month}-${product.id}`,
+        ok: identity === product.increment,
+        label: `${snapshot.label}${product.name} 增量恒等式`,
+        detail: `新成交留存 ${product.newRetained} − 到期解约 ${product.expiryCancel} = ${identity}，表内增量为 ${product.increment}`,
+      });
+      items.push({
+        id: `renew-${snapshot.month}-${product.id}`,
+        ok: product.renewedCount + product.expiryCancel === product.expiringCount,
+        label: `${snapshot.label}${product.name} 到期分流`,
+        detail: `续费 ${product.renewedCount} + 到期解约 ${product.expiryCancel} = ${product.renewedCount + product.expiryCancel}，到期 ${product.expiringCount}`,
+      });
+      items.push({
+        id: `new-${snapshot.month}-${product.id}`,
+        ok: product.newRetained + product.newCancel === product.newDeals,
+        label: `${snapshot.label}${product.name} 新成交分流`,
+        detail: `留存 ${product.newRetained} + 解约 ${product.newCancel} = ${product.newRetained + product.newCancel}，新成交 ${product.newDeals}`,
+      });
     });
-    items.push({
-      id: `renew-${product.id}`,
-      ok: product.renewedCount + product.expiryCancel === product.expiringCount,
-      label: `${product.name} 到期分流`,
-      detail: `续费 ${product.renewedCount} + 到期解约 ${product.expiryCancel} = ${product.renewedCount + product.expiryCancel}，到期 ${product.expiringCount}`,
-    });
-    items.push({
-      id: `new-${product.id}`,
-      ok: product.newRetained + product.newCancel === product.newDeals,
-      label: `${product.name} 新成交分流`,
-      detail: `留存 ${product.newRetained} + 解约 ${product.newCancel} = ${product.newRetained + product.newCancel}，新成交 ${product.newDeals}`,
-    });
-    items.push({
-      id: `neg-${product.id}`,
-      ok:
-        product.leads >= 0 &&
-        product.newDeals >= 0 &&
-        product.newCancel >= 0 &&
-        product.newCancel <= product.newDeals &&
-        product.renewedCount >= 0 &&
-        product.renewedCount <= product.expiringCount &&
-        product.paidLeadShare >= 0 &&
-        product.paidLeadShare <= 1,
-      label: `${product.name} 输入边界`,
-      detail: "线索、成交、解约、续费、付费占比均需落在合理区间。",
-    });
-  });
 
-  const increment = sumBy(products, (row) => row.increment);
-  const retained = sumBy(products, (row) => row.newRetained);
-  const expiryCancel = sumBy(products, (row) => row.expiryCancel);
-  items.push({
-    id: "company-increment",
-    ok: increment === retained - expiryCancel,
-    label: "公司级增量恒等式",
-    detail: `全产品新成交留存 ${retained} − 到期解约 ${expiryCancel} = ${retained - expiryCancel}，合计增量 ${increment}`,
+    items.push({
+      id: `company-increment-${snapshot.month}`,
+      ok: snapshot.increment === snapshot.newRetained - snapshot.expiryCancel,
+      label: `${snapshot.label}公司级增量恒等式`,
+      detail: `新成交留存 ${snapshot.newRetained} − 到期解约 ${snapshot.expiryCancel} = ${snapshot.newRetained - snapshot.expiryCancel}，合计增量 ${snapshot.increment}`,
+    });
   });
 
   items.push({
     id: "lead-match",
     ok: Math.abs(leadsHandled - productLeads) <= Math.max(20, productLeads * 0.08),
     label: "线索口径对齐",
-    detail: `销售承接线索合计 ${leadsHandled}（按进线条数），产品线索合计 ${productLeads}（按业务类型，多产品进线可重复计）。差距来自未分类进线或一客多业务，不一定是台账错误。`,
+    detail: `销售承接线索合计 ${leadsHandled}（按进线条数，费率月），产品线索合计 ${productLeads}（按业务类型，多产品进线可重复计）。`,
   });
 
   items.push({
@@ -340,16 +389,19 @@ function buildAudit(
     detail: "至少需要 1 名前端（销售）才能测算人均承接与编制。",
   });
 
+  const targets = PLAN_MONTHS.map((row) => company.monthTargets[row.id] ?? 0);
   items.push({
-    id: "target-positive",
-    ok: company.targetIncrement > 0,
-    label: "增量目标",
-    detail: `当前目标总增量为 ${company.targetIncrement}。`,
+    id: "targets-positive",
+    ok: targets.every((value) => value > 0),
+    label: "分月增量目标",
+    detail: `9/10/11 月目标净增分别为 ${targets.join(" / ")}。`,
   });
 
   return items;
 }
 
-export function personHandoff(person: PersonInput): number {
-  return person.groupChats + person.privateChats;
+export function personHandoff(person: PersonInput, month: ReferenceMonthId = "2026-08"): number {
+  return person.groupChats + personLeadsIn(person, month);
 }
+
+export { monthLabel, PLAN_MONTHS, REFERENCE_MONTHS };

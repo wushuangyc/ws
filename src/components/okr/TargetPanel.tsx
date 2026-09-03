@@ -6,13 +6,32 @@ export function TargetPanel({ model }: { model: OkrModel }) {
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {model.plans.map((plan) => {
+          const active = plan.month === model.target.month;
+          return (
+            <article
+              key={plan.month}
+              className={`rounded-2xl border p-4 shadow-sm ${
+                active ? "border-teal-500 bg-teal-50/70" : "border-slate-200 bg-white"
+              }`}
+            >
+              <p className="text-xs text-slate-500">{plan.label}目标净增</p>
+              <p className="mt-1 font-mono text-2xl font-semibold">{formatSigned(plan.targetIncrement)}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                需线索 {formatInt(plan.requiredLeads)} · 需毛成交 {formatInt(plan.requiredGrossDeals)}
+              </p>
+            </article>
+          );
+        })}
+      </div>
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="min-w-[980px] w-full border-collapse text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-500">
             <tr>
               <th className="px-3 py-3 font-medium">产品</th>
-              <th className="px-3 py-3 font-medium">增量份额</th>
-              <th className="px-3 py-3 font-medium">下期到期解约</th>
+              <th className="px-3 py-3 font-medium">{model.target.label}增量份额</th>
+              <th className="px-3 py-3 font-medium">当月到期解约</th>
               <th className="px-3 py-3 font-medium">需净留存成交</th>
               <th className="px-3 py-3 font-medium">有效留存率</th>
               <th className="px-3 py-3 font-medium">需毛成交</th>
@@ -50,7 +69,7 @@ export function TargetPanel({ model }: { model: OkrModel }) {
           </tbody>
           <tfoot className="border-t-2 border-slate-200 bg-amber-50/70 font-medium">
             <tr>
-              <td className="px-3 py-3">目标合计</td>
+              <td className="px-3 py-3">{model.target.label}合计</td>
               <td className="px-3 py-3 font-mono">{formatSigned(model.target.targetIncrement)}</td>
               <td className="px-3 py-3 font-mono">{formatInt(model.target.nextExpiryCancel)}</td>
               <td className="px-3 py-3 font-mono">{formatInt(model.target.requiredRetained)}</td>
@@ -64,10 +83,10 @@ export function TargetPanel({ model }: { model: OkrModel }) {
         </table>
       </div>
       <p className="text-sm leading-6 text-slate-600">
-        推演路径：目标净增 {formatInt(model.target.targetIncrement)} + 下期到期解约{" "}
+        {model.target.label}推演：目标净增 {formatInt(model.target.targetIncrement)} + 当月到期解约{" "}
         {formatInt(model.target.nextExpiryCancel)} = 需净留存成交{" "}
-        {formatInt(model.target.requiredRetained)}。再按各产品留存率倒推毛成交，按转化率倒推线索。
-        毛成交对留存使用向上取整，因此编制与线索会略高于理论最小值。
+        {formatInt(model.target.requiredRetained)}。费率取自{model.baseline.label}
+        ，不把 7 月和 8 月加总当上一个周期。
       </p>
     </div>
   );

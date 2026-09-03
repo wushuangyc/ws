@@ -17,15 +17,15 @@ export function StaffingPanel({
         <h3 className="text-sm font-semibold text-slate-900">编制测算</h3>
         <dl className="mt-4 space-y-3 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">上期前端人均承接线索</dt>
+            <dt className="text-slate-500">{model.baseline.label}前端人均承接线索</dt>
             <dd className="font-mono">{formatNum(model.people.avgLeadsPerFrontend, 1)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">上期前端人均对接（群+私）</dt>
+            <dt className="text-slate-500">{model.baseline.label}前端人均对接（群+私）</dt>
             <dd className="font-mono">{formatNum(model.people.avgHandoffFrontend, 1)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">目标周期需线索</dt>
+            <dt className="text-slate-500">{model.target.label}需线索</dt>
             <dd className="font-mono">{formatInt(model.target.requiredLeads)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
@@ -38,7 +38,7 @@ export function StaffingPanel({
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-600">后端人数 = 新成交 ÷ 上期成交 × 上期后端人数</dt>
+            <dt className="text-slate-600">后端人数 = 新成交 ÷ {model.baseline.label}成交 × 后端人数</dt>
             <dd className="font-mono text-lg font-semibold">
               {formatNum(model.target.backendNeeded, 2)}
               <span className="ml-2 text-xs font-normal text-slate-500">
@@ -56,10 +56,10 @@ export function StaffingPanel({
         <h3 className="text-sm font-semibold text-slate-900">付费渠道与自然流量</h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="text-xs text-slate-500">
-            上期付费线索总成本
+            {model.baseline.label}付费线索总成本
             <div className="mt-1">
               <NumberField
-                ariaLabel="上期付费线索总成本"
+                ariaLabel={`${model.baseline.label}付费线索总成本`}
                 value={company.previousPaidLeadCost}
                 onChange={(previousPaidLeadCost) => onCompanyChange({ previousPaidLeadCost })}
                 step={1000}
@@ -67,7 +67,7 @@ export function StaffingPanel({
             </div>
           </div>
           <div className="text-xs text-slate-500">
-            下期自然线索产能上限
+            单月自然线索产能上限
             <div className="mt-1">
               <NumberField
                 ariaLabel="自然线索产能上限"
@@ -79,7 +79,7 @@ export function StaffingPanel({
         </div>
         <dl className="mt-4 space-y-3 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">上期付费线索 / CPL</dt>
+            <dt className="text-slate-500">{model.baseline.label}付费线索 / CPL</dt>
             <dd className="font-mono">
               {formatInt(model.baseline.paidLeads)} / {formatMoney(model.baseline.paidCpl)}
             </dd>
@@ -95,11 +95,11 @@ export function StaffingPanel({
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">原公式：需求线索 / 上期线索总量 × 上期成本</dt>
+            <dt className="text-slate-500">原公式：需求线索 / {model.baseline.label}线索 × 费率月成本</dt>
             <dd className="font-mono">{formatMoney(model.target.paidCostOriginal)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-600">推荐：缺口付费线索 × 上期付费 CPL</dt>
+            <dt className="text-slate-600">推荐：缺口付费线索 × {model.baseline.label}付费 CPL</dt>
             <dd className="font-mono text-lg font-semibold text-amber-800">
               {formatMoney(model.target.recommendedPaidCost)}
             </dd>

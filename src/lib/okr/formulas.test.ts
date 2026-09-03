@@ -12,57 +12,68 @@ describe("allocateByWeight", () => {
   });
 });
 
-describe("buildOkrModel baseline identities", () => {
+describe("monthly baselines are independent", () => {
   const model = buildOkrModel(createDefaultState());
 
-  it("keeps product-level identities exact", () => {
-    for (const product of model.baseline.products) {
-      assert.equal(product.newRetained, product.newDeals - product.newCancel);
-      assert.equal(product.expiryCancel, product.expiringCount - product.renewedCount);
-      assert.equal(product.increment, product.newRetained - product.expiryCancel);
-      assert.equal(product.closingOnline, product.openingOnline + product.increment);
-    }
+  it("does not treat July plus August as one previous cycle", () => {
+    assert.equal(model.july.increment, 73);
+    assert.equal(model.august.increment, 132);
+    assert.notEqual(model.july.increment + model.august.increment, model.baseline.increment);
+    assert.equal(model.baseline.month, "2026-08");
+    assert.equal(model.baseline.increment, 132);
   });
 
-  it("matches the designed 7-8 month snapshot", () => {
-    assert.equal(model.baseline.openingOnline, 638);
-    assert.equal(model.baseline.closingOnline, 843);
-    assert.equal(model.baseline.increment, 205);
-    assert.equal(model.baseline.leads, 513);
-    assert.equal(model.baseline.newDeals, 238);
-    assert.equal(model.baseline.newCancel, 0);
-    assert.equal(model.baseline.newRetained, 238);
-    assert.equal(model.baseline.expiryCancel, 33);
-    assert.equal(model.baseline.renewedCount, 33);
-    assert.equal(model.people.leadsHandled, 520);
+  it("matches July actuals", () => {
+    assert.equal(model.july.leads, 251);
+    assert.equal(model.july.newDeals, 91);
+    assert.equal(model.july.expiryCancel, 18);
+    assert.equal(model.july.newRetained - model.july.expiryCancel, model.july.increment);
+    assert.equal(model.people.julyLeads, 255);
+  });
+
+  it("matches August actuals used as the rate month", () => {
+    assert.equal(model.august.leads, 262);
+    assert.equal(model.august.newDeals, 147);
+    assert.equal(model.august.expiryCancel, 15);
+    assert.equal(model.august.increment, 132);
+    assert.equal(model.people.augustLeads, 265);
     assert.equal(model.people.frontendCount, 7);
     assert.equal(model.people.backendCount, 3);
   });
 
-  it("uses 新成交留存 − 到期解约 as net increment", () => {
-    assert.equal(
-      model.baseline.newRetained - model.baseline.expiryCancel,
-      model.baseline.increment,
-    );
+  it("keeps product-level identities exact in both months", () => {
+    for (const snapshot of [model.july, model.august]) {
+      for (const product of snapshot.products) {
+        assert.equal(product.newRetained, product.newDeals - product.newCancel);
+        assert.equal(product.expiryCancel, product.expiringCount - product.renewedCount);
+        assert.equal(product.increment, product.newRetained - product.expiryCancel);
+      }
+    }
   });
 });
 
-describe("target reverse planning", () => {
+describe("Sep/Oct/Nov reverse planning", () => {
   const model = buildOkrModel(createDefaultState());
 
-  it("covers net +175 after replacing next-period expiry churn", () => {
-    const allocated = model.target.products.reduce(
-      (sum, product) => sum + product.incrementShare,
-      0,
+  it("uses 175 / 200 / 225 as independent monthly net-growth targets", () => {
+    assert.deepEqual(
+      model.plans.map((plan) => [plan.month, plan.targetIncrement, plan.projectedIncrement]),
+      [
+        ["2026-09", 175, 175],
+        ["2026-10", 200, 200],
+        ["2026-11", 225, 225],
+      ],
     );
-    assert.equal(allocated, 175);
-    assert.equal(
-      model.target.requiredRetained,
-      model.target.targetIncrement + model.target.nextExpiryCancel,
-    );
-    assert.equal(model.target.projectedIncrement, 175);
-    // 期末总量只作内部轧账，不作为考核指标
-    assert.equal(model.target.targetClosing, 843 + 175);
+    assert.equal(model.target.month, "2026-09");
+    assert.equal(model.target.targetIncrement, 175);
+  });
+
+  it("covers each month's target after replacing that month's expiry churn", () => {
+    for (const plan of model.plans) {
+      const allocated = plan.products.reduce((sum, product) => sum + product.incrementShare, 0);
+      assert.equal(allocated, plan.targetIncrement);
+      assert.equal(plan.requiredRetained, plan.targetIncrement + plan.nextExpiryCancel);
+    }
   });
 
   it("backs into leads from conversion and retention", () => {
@@ -76,10 +87,9 @@ describe("target reverse planning", () => {
     }
   });
 
-  it("scales backend headcount with deal volume", () => {
+  it("scales backend headcount with the selected month's deal volume", () => {
     const expected =
-      (model.target.requiredGrossDeals / model.baseline.newDeals) *
-      model.people.backendCount;
+      (model.target.requiredGrossDeals / model.baseline.newDeals) * model.people.backendCount;
     assert.equal(model.target.backendNeeded, expected);
   });
 });

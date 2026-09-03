@@ -2,38 +2,42 @@ export type ScenarioId = "conservative" | "base" | "aggressive";
 
 export type PersonRole = "frontend" | "backend";
 
-export type ProductInput = {
-  id: string;
-  name: string;
-  ticketPrice: number;
-  openingOnline: number;
+export type ReferenceMonthId = "2026-07" | "2026-08";
+
+export type PlanMonthId = "2026-09" | "2026-10" | "2026-11";
+
+export type ProductMonthInput = {
   leads: number;
   newDeals: number;
   newCancel: number;
   expiringCount: number;
   renewedCount: number;
-  nextExpiringCount: number;
   paidLeadShare: number;
+};
+
+export type ProductInput = {
+  id: string;
+  name: string;
+  ticketPrice: number;
+  openingOnline: number;
   strategicWeight: number;
+  actuals: Record<ReferenceMonthId, ProductMonthInput>;
+  plannedExpiry: Record<PlanMonthId, number>;
 };
 
 export type PersonInput = {
   id: string;
   name: string;
   role: PersonRole;
-  newLeadsHandled: number;
+  julyLeads: number;
+  augustLeads: number;
   groupChats: number;
-  privateChats: number;
 };
 
 export type CompanyInput = {
-  baselineLabel: string;
-  baselineStart: string;
-  baselineEnd: string;
-  targetLabel: string;
-  targetStart: string;
-  targetEnd: string;
-  targetIncrement: number;
+  planningMonth: PlanMonthId;
+  rateMonth: ReferenceMonthId;
+  monthTargets: Record<PlanMonthId, number>;
   previousPaidLeadCost: number;
   organicLeadCapacity: number;
   conversionBuffer: number;
@@ -56,7 +60,12 @@ export type OkrState = {
   people: PersonInput[];
 };
 
-export type ProductBaseline = ProductInput & {
+export type ProductBaseline = ProductMonthInput & {
+  id: string;
+  name: string;
+  ticketPrice: number;
+  openingOnline: number;
+  strategicWeight: number;
   conversionRate: number;
   newCancelRate: number;
   newRetained: number;
@@ -96,29 +105,64 @@ export type AuditItem = {
   detail: string;
 };
 
+export type MonthSnapshot = {
+  month: ReferenceMonthId;
+  label: string;
+  products: ProductBaseline[];
+  increment: number;
+  leads: number;
+  newDeals: number;
+  newCancel: number;
+  newRetained: number;
+  newRetentionRate: number;
+  conversionRate: number;
+  expiringCount: number;
+  renewedCount: number;
+  expiryCancel: number;
+  renewalRate: number;
+  paidLeads: number;
+  organicLeads: number;
+  paidShare: number;
+  newDealRevenue: number;
+  renewalRevenue: number;
+  paidCpl: number;
+  openingOnline: number;
+  closingOnline: number;
+};
+
+export type MonthPlan = {
+  month: PlanMonthId;
+  label: string;
+  products: ProductTarget[];
+  targetIncrement: number;
+  nextExpiring: number;
+  nextExpiryCancel: number;
+  requiredRetained: number;
+  requiredGrossDeals: number;
+  requiredLeads: number;
+  paidLeadsByMix: number;
+  paidLeadsByResidual: number;
+  organicLeadsPlanned: number;
+  projectedIncrement: number;
+  projectedClosing: number;
+  frontendNeeded: number;
+  frontendNeededCeil: number;
+  backendNeeded: number;
+  backendNeededCeil: number;
+  paidCostOriginal: number;
+  paidCostCorrectedMix: number;
+  paidCostCorrectedResidual: number;
+  recommendedPaidLeads: number;
+  recommendedPaidCost: number;
+  openingOnline: number;
+  targetClosing: number;
+};
+
 export type OkrModel = {
-  baseline: {
-    products: ProductBaseline[];
-    openingOnline: number;
-    closingOnline: number;
-    increment: number;
-    leads: number;
-    newDeals: number;
-    newCancel: number;
-    newRetained: number;
-    newRetentionRate: number;
-    conversionRate: number;
-    expiringCount: number;
-    renewedCount: number;
-    expiryCancel: number;
-    renewalRate: number;
-    paidLeads: number;
-    organicLeads: number;
-    paidShare: number;
-    newDealRevenue: number;
-    renewalRevenue: number;
-    paidCpl: number;
-  };
+  july: MonthSnapshot;
+  august: MonthSnapshot;
+  references: MonthSnapshot[];
+  baseline: MonthSnapshot;
   people: {
     list: PersonInput[];
     frontend: PersonInput[];
@@ -132,32 +176,11 @@ export type OkrModel = {
     totalGroup: number;
     totalPrivate: number;
     totalHandoff: number;
+    julyLeads: number;
+    augustLeads: number;
   };
-  target: {
-    products: ProductTarget[];
-    openingOnline: number;
-    targetClosing: number;
-    targetIncrement: number;
-    nextExpiring: number;
-    nextExpiryCancel: number;
-    requiredRetained: number;
-    requiredGrossDeals: number;
-    requiredLeads: number;
-    paidLeadsByMix: number;
-    paidLeadsByResidual: number;
-    organicLeadsPlanned: number;
-    projectedIncrement: number;
-    projectedClosing: number;
-    frontendNeeded: number;
-    frontendNeededCeil: number;
-    backendNeeded: number;
-    backendNeededCeil: number;
-    paidCostOriginal: number;
-    paidCostCorrectedMix: number;
-    paidCostCorrectedResidual: number;
-    recommendedPaidLeads: number;
-    recommendedPaidCost: number;
-  };
+  plans: MonthPlan[];
+  target: MonthPlan;
   audit: AuditItem[];
   scenario: ScenarioConfig;
 };

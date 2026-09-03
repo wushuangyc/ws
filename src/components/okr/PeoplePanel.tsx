@@ -16,17 +16,19 @@ export function PeoplePanel({
   onRemove: (id: string) => void;
   onAdd: (role: PersonRole) => void;
 }) {
+  const rateMonth = model.baseline.month;
+
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="min-w-[900px] w-full border-collapse text-sm">
+      <table className="min-w-[960px] w-full border-collapse text-sm">
         <thead className="bg-slate-50 text-left text-xs text-slate-500">
           <tr>
             <th className="px-3 py-3 font-medium">姓名</th>
             <th className="px-3 py-3 font-medium">角色</th>
-            <th className="px-3 py-3 font-medium">承接新线索</th>
+            <th className="px-3 py-3 font-medium">7月线索</th>
+            <th className="px-3 py-3 font-medium">8月线索</th>
             <th className="px-3 py-3 font-medium">群聊对接</th>
-            <th className="px-3 py-3 font-medium">私聊对接</th>
-            <th className="px-3 py-3 font-medium">对接合计</th>
+            <th className="px-3 py-3 font-medium">费率月对接</th>
             <th className="px-3 py-3 font-medium" />
           </tr>
         </thead>
@@ -56,9 +58,16 @@ export function PeoplePanel({
               </td>
               <td className="px-3 py-3">
                 <NumberField
-                  ariaLabel={`${person.name}承接线索`}
-                  value={person.newLeadsHandled}
-                  onChange={(newLeadsHandled) => onChange(person.id, { newLeadsHandled })}
+                  ariaLabel={`${person.name}7月线索`}
+                  value={person.julyLeads}
+                  onChange={(julyLeads) => onChange(person.id, { julyLeads })}
+                />
+              </td>
+              <td className="px-3 py-3">
+                <NumberField
+                  ariaLabel={`${person.name}8月线索`}
+                  value={person.augustLeads}
+                  onChange={(augustLeads) => onChange(person.id, { augustLeads })}
                 />
               </td>
               <td className="px-3 py-3">
@@ -68,15 +77,8 @@ export function PeoplePanel({
                   onChange={(groupChats) => onChange(person.id, { groupChats })}
                 />
               </td>
-              <td className="px-3 py-3">
-                <NumberField
-                  ariaLabel={`${person.name}私聊对接`}
-                  value={person.privateChats}
-                  onChange={(privateChats) => onChange(person.id, { privateChats })}
-                />
-              </td>
               <td className="px-3 py-3 font-mono font-medium">
-                {formatInt(personHandoff(person))}
+                {formatInt(personHandoff(person, rateMonth))}
               </td>
               <td className="px-3 py-3">
                 <button
@@ -96,18 +98,13 @@ export function PeoplePanel({
             <td className="px-3 py-3 text-xs text-slate-500">
               前端 {model.people.frontendCount} · 后端 {model.people.backendCount}
             </td>
-            <td className="px-3 py-3 font-mono">
-              {formatInt(model.people.leadsHandled)}
-              <p className="text-[11px] text-slate-500">
-                前端人均 {formatNum(model.people.avgLeadsPerFrontend, 1)}
-              </p>
-            </td>
+            <td className="px-3 py-3 font-mono">{formatInt(model.people.julyLeads)}</td>
+            <td className="px-3 py-3 font-mono">{formatInt(model.people.augustLeads)}</td>
             <td className="px-3 py-3 font-mono">{formatInt(model.people.totalGroup)}</td>
-            <td className="px-3 py-3 font-mono">{formatInt(model.people.totalPrivate)}</td>
             <td className="px-3 py-3 font-mono">
               {formatInt(model.people.totalHandoff)}
               <p className="text-[11px] text-slate-500">
-                全员人均 {formatNum(model.people.avgHandoffPerPerson, 1)}
+                {model.baseline.label}前端人均 {formatNum(model.people.avgHandoffFrontend, 1)}
               </p>
             </td>
             <td className="px-3 py-3">

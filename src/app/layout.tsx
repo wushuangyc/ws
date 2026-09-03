@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "在网增长 OKR 工作台",
   description:
-    "基于 7–8 月基线反推净增 175 的产品线索、成交、编制与付费预算的 OKR 管理工具。",
+    "按自然月对照 7 月、8 月趋势，分别倒推 9/10/11 月净增 175、200、225 所需的线索、编制与付费预算。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -8,7 +8,7 @@ import { ProductBaselineTable } from "@/components/okr/ProductBaselineTable";
 import { StaffingPanel } from "@/components/okr/StaffingPanel";
 import { TargetPanel } from "@/components/okr/TargetPanel";
 import { WaterfallChart } from "@/components/okr/WaterfallChart";
-import { buildOkrModel, SCENARIOS } from "@/lib/okr/formulas";
+import { buildOkrModel, PLAN_MONTHS, REFERENCE_MONTHS, SCENARIOS } from "@/lib/okr/formulas";
 import { formatInt, formatMoney, formatNum, formatPct, formatSigned } from "@/lib/okr/format";
 import {
   blankPerson,
@@ -22,6 +22,8 @@ import type {
   PersonInput,
   PersonRole,
   ProductInput,
+  ProductMonthInput,
+  ReferenceMonthId,
   ScenarioId,
 } from "@/lib/okr/types";
 import { useEffect, useMemo, useState } from "react";
@@ -38,12 +40,20 @@ const NAV = [
 function isOkrState(value: unknown): value is OkrState {
   if (!value || typeof value !== "object") return false;
   const record = value as Partial<OkrState>;
-  return Array.isArray(record.products) && Array.isArray(record.people) && Boolean(record.company);
+  const company = record.company;
+  const products = record.products;
+  return (
+    Array.isArray(products) &&
+    Array.isArray(record.people) &&
+    Boolean(company?.monthTargets) &&
+    products.every((product) => product && typeof product === "object" && "actuals" in product)
+  );
 }
 
 export function OkrWorkbench() {
   const [state, setState] = useState<OkrState>(createDefaultState);
   const [hydrated, setHydrated] = useState(false);
+  const [viewMonth, setViewMonth] = useState<ReferenceMonthId>("2026-08");
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +82,13 @@ export function OkrWorkbench() {
 
   const model = useMemo(() => buildOkrModel(state), [state]);
   const failedAudits = model.audit.filter((item) => !item.ok);
+  const viewed = viewMonth === "2026-07" ? model.july : model.august;
+  const trendMax = Math.max(
+    model.july.increment,
+    model.august.increment,
+    ...model.plans.map((plan) => plan.targetIncrement),
+    1,
+  );
 
   function patchCompany(patch: Partial<CompanyInput>) {
     setState((current) => ({
@@ -85,6 +102,27 @@ export function OkrWorkbench() {
       ...current,
       products: current.products.map((product) =>
         product.id === id ? { ...product, ...patch } : product,
+      ),
+    }));
+  }
+
+  function patchProductMonth(
+    id: string,
+    month: ReferenceMonthId,
+    patch: Partial<ProductMonthInput>,
+  ) {
+    setState((current) => ({
+      ...current,
+      products: current.products.map((product) =>
+        product.id === id
+          ? {
+              ...product,
+              actuals: {
+                ...product.actuals,
+                [month]: { ...product.actuals[month], ...patch },
+              },
+            }
+          : product,
       ),
     }));
   }
@@ -123,9 +161,8 @@ export function OkrWorkbench() {
                 在网增长工作台
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                唯一目标：9–10 月在网用户净增 {formatInt(state.company.targetIncrement)}。
-                不考核现有或目标在网总量；总量只在公式里用来反推成交和到期流失。
-                产品为电力、号卡、WIFI、宽带，底数来自 MOBIUS 业绩表 7–8 月。
+                周期按自然月。7 月、8 月是两个独立参考月，只看趋势，不是加总后的「上个周期」。
+                规划月是 9、10、11 月，净增目标分别是 175、200、225。不考核在网总量。
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -141,12 +178,35 @@ export function OkrWorkbench() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <div className="flex rounded-full bg-slate-900 p-1">
+              {PLAN_MONTHS.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => patchCompany({ planningMonth: row.id })}
+                  className={`rounded-full px-3 py-1.5 text-xs ${
+                    state.company.planningMonth === row.id
+                      ? "bg-teal-500 text-slate-950"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                >
+                  {row.label} {formatSigned(state.company.monthTargets[row.id])}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-2 text-xs text-slate-400">
-              目标净增
+              {model.target.label}目标净增
               <NumberField
-                ariaLabel="目标净增"
-                value={state.company.targetIncrement}
-                onChange={(targetIncrement) => patchCompany({ targetIncrement })}
+                ariaLabel={`${model.target.label}目标净增`}
+                value={state.company.monthTargets[state.company.planningMonth]}
+                onChange={(value) =>
+                  patchCompany({
+                    monthTargets: {
+                      ...state.company.monthTargets,
+                      [state.company.planningMonth]: value,
+                    },
+                  })
+                }
               />
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400">
@@ -200,56 +260,82 @@ export function OkrWorkbench() {
           <SectionTitle
             id="overview-title"
             kicker="01 总览"
-            title={`先把净增 ${formatInt(state.company.targetIncrement)} 拆成成交、续费和线索`}
+            title={`把${model.target.label}净增 ${formatInt(model.target.targetIncrement)} 拆成成交、续费和线索`}
             description={model.scenario.hint}
           />
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <KpiCard
               tone="navy"
-              label="目标净增（唯一承诺）"
+              label={`${model.target.label}目标净增`}
               value={formatSigned(model.target.targetIncrement)}
-              hint="只盯净增，不盯在网总量"
+              hint="当月唯一承诺，不盯在网总量"
             />
             <KpiCard
               tone="teal"
-              label="上期净增（7–8 月）"
-              value={formatSigned(model.baseline.increment)}
-              hint={
-                model.baseline.increment >= model.target.targetIncrement
-                  ? "上期已高于目标，下期关键是补到期流失、把结构调过来"
-                  : `相对上期还需多净增 ${formatInt(model.target.targetIncrement - model.baseline.increment)}`
-              }
+              label="7月净增（参考）"
+              value={formatSigned(model.july.increment)}
+              hint={`线索 ${formatInt(model.july.leads)} · 新成交 ${formatInt(model.july.newDeals)}`}
             />
             <KpiCard
-              label="需净留存成交"
+              tone="teal"
+              label="8月净增（参考）"
+              value={formatSigned(model.august.increment)}
+              hint={`线索 ${formatInt(model.august.leads)} · 新成交 ${formatInt(model.august.newDeals)}`}
+            />
+            <KpiCard
+              label={`${model.target.label}需净留存成交`}
               value={formatInt(model.target.requiredRetained)}
-              hint={`${formatInt(model.target.targetIncrement)} + 下期到期解约 ${formatInt(model.target.nextExpiryCancel)}`}
+              hint={`${formatInt(model.target.targetIncrement)} + 当月到期解约 ${formatInt(model.target.nextExpiryCancel)}`}
             />
             <KpiCard
               tone="amber"
               label="需线索 / 需毛成交"
               value={`${formatInt(model.target.requiredLeads)} / ${formatInt(model.target.requiredGrossDeals)}`}
-              hint={`综合转化 ${formatPct(model.baseline.conversionRate)}，留存 ${formatPct(model.baseline.newRetentionRate)}`}
-            />
-            <KpiCard
-              tone="rose"
-              label="推荐付费预算"
-              value={formatMoney(model.target.recommendedPaidCost)}
-              hint={`付费缺口 ${formatInt(model.target.recommendedPaidLeads)} 条`}
+              hint={`费率取自${model.baseline.label}，转化 ${formatPct(model.baseline.conversionRate)}`}
             />
           </div>
+          <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-slate-900">月度净增趋势</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              7 月、8 月是实绩；9–11 月是分月目标。两月实绩不能加总成「上个周期」。
+            </p>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-5">
+              {[
+                { label: "7月实绩", value: model.july.increment, tone: "actual" as const },
+                { label: "8月实绩", value: model.august.increment, tone: "actual" as const },
+                ...model.plans.map((plan) => ({
+                  label: `${plan.label}目标`,
+                  value: plan.targetIncrement,
+                  tone: "target" as const,
+                })),
+              ].map((item) => (
+                <li key={item.label}>
+                  <p className="text-xs text-slate-500">{item.label}</p>
+                  <p className="mt-1 font-mono text-lg font-semibold">{formatSigned(item.value)}</p>
+                  <span className="mt-2 block h-2.5 rounded-full bg-slate-100">
+                    <span
+                      className={`block h-2.5 rounded-full ${
+                        item.tone === "actual" ? "bg-slate-500" : "bg-teal-600"
+                      }`}
+                      style={{ width: `${(Math.abs(item.value) / trendMax) * 100}%` }}
+                    />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </article>
           <div className="grid gap-4 xl:grid-cols-2">
             <WaterfallChart
-              title="上期净增怎么来的：新成交留存 − 到期解约"
+              title={`${viewed.label}净增怎么来的：新成交留存 − 到期解约`}
               steps={[
-                { label: "新成交", value: model.baseline.newDeals, tone: "base" },
-                { label: "新成交解约", value: -model.baseline.newCancel, tone: "down" },
-                { label: "到期解约", value: -model.baseline.expiryCancel, tone: "down" },
-                { label: "净增", value: model.baseline.increment, tone: "end" },
+                { label: "新成交", value: viewed.newDeals, tone: "base" },
+                { label: "新成交解约", value: -viewed.newCancel, tone: "down" },
+                { label: "到期解约", value: -viewed.expiryCancel, tone: "down" },
+                { label: "净增", value: viewed.increment, tone: "end" },
               ]}
             />
             <WaterfallChart
-              title="下期怎么打到目标：净增 + 到期流失 = 需留存成交"
+              title={`${model.target.label}怎么打到目标：净增 + 当月到期流失 = 需留存成交`}
               steps={[
                 { label: "目标净增", value: model.target.targetIncrement, tone: "base" },
                 { label: "补到期解约", value: model.target.nextExpiryCancel, tone: "up" },
@@ -262,27 +348,37 @@ export function OkrWorkbench() {
             <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
               <h3 className="text-sm font-semibold text-slate-900">产品增量结构</h3>
               <p className="mt-1 text-xs text-slate-500">
-                柱长表示基线增量；右侧数字是目标周期按战略权重分到的净增份额。
+                对照 7 月、8 月实绩，再看{model.target.label}按战略权重分到的净增份额。
               </p>
               <ul className="mt-4 space-y-3">
-                {model.baseline.products.map((product) => {
+                {model.august.products.map((product) => {
+                  const july = model.july.products.find((row) => row.id === product.id);
                   const target = model.target.products.find((row) => row.id === product.id);
                   const maxAbs = Math.max(
-                    ...model.baseline.products.map((row) => Math.abs(row.increment)),
+                    ...model.july.products.map((row) => Math.abs(row.increment)),
+                    ...model.august.products.map((row) => Math.abs(row.increment)),
+                    ...model.target.products.map((row) => Math.abs(row.incrementShare)),
                     1,
                   );
                   return (
-                    <li key={product.id} className="grid grid-cols-[8rem_1fr_auto] items-center gap-3">
-                      <span className="truncate text-sm text-slate-700">{product.name}</span>
-                      <span className="h-2.5 rounded-full bg-slate-100">
+                    <li key={product.id} className="space-y-1">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="truncate text-slate-700">{product.name}</span>
+                        <span className="font-mono text-xs text-slate-600">
+                          7月 {formatSigned(july?.increment ?? 0)} → 8月{" "}
+                          {formatSigned(product.increment)} → {model.target.label}{" "}
+                          {formatSigned(target?.incrementShare ?? 0)}
+                        </span>
+                      </div>
+                      <span className="flex h-2.5 overflow-hidden rounded-full bg-slate-100">
                         <span
-                          className="block h-2.5 rounded-full bg-teal-600"
-                          style={{ width: `${(Math.abs(product.increment) / maxAbs) * 100}%` }}
+                          className="block h-2.5 bg-slate-400"
+                          style={{ width: `${(Math.abs(july?.increment ?? 0) / maxAbs) * 50}%` }}
                         />
-                      </span>
-                      <span className="font-mono text-xs text-slate-600">
-                        基线 {formatSigned(product.increment)} → 目标{" "}
-                        {formatSigned(target?.incrementShare ?? 0)}
+                        <span
+                          className="block h-2.5 bg-teal-600"
+                          style={{ width: `${(Math.abs(product.increment) / maxAbs) * 50}%` }}
+                        />
                       </span>
                     </li>
                   );
@@ -293,8 +389,8 @@ export function OkrWorkbench() {
               <h3 className="text-sm font-semibold text-slate-900">口径校验</h3>
               <p className="mt-1 text-xs text-slate-500">
                 {failedAudits.length === 0
-                  ? "全部恒等式通过，可以进入目标推演。"
-                  : `${failedAudits.length} 项未通过，请先修基线表。`}
+                  ? "7月、8月恒等式均通过，可以进入分月推演。"
+                  : `${failedAudits.length} 项未通过，请先修对应月的基线表。`}
               </p>
               <ul className="mt-3 max-h-56 space-y-2 overflow-auto text-xs leading-5">
                 {model.audit.map((item) => (
@@ -317,31 +413,66 @@ export function OkrWorkbench() {
           <SectionTitle
             id="baseline-title"
             kicker="02 基线盘点"
-            title="7 月 1 日–8 月 31 日产品台账"
-            description="只看增量：新成交留存 − 到期解约。转化率、留存率、续费率由件数反算。期初/期末总量不进入本表。"
+            title="7 月、8 月分月台账"
+            description="每个自然月单独算增量：当月新成交留存 − 当月到期解约。不要把两月加总。右侧 9/10/11 月到期是规划月日历。"
           />
+          <div className="flex flex-wrap items-center gap-2">
+            {REFERENCE_MONTHS.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                onClick={() => setViewMonth(row.id)}
+                className={`rounded-full px-3 py-1.5 text-xs ${
+                  viewMonth === row.id
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-300 bg-white text-slate-600 hover:border-slate-500"
+                }`}
+              >
+                查看{row.label}实绩{" "}
+                {formatSigned(row.id === "2026-07" ? model.july.increment : model.august.increment)}
+              </button>
+            ))}
+            <div className="flex rounded-full border border-slate-200 bg-white p-1 text-xs">
+              {REFERENCE_MONTHS.map((row) => (
+                <button
+                  key={`rate-${row.id}`}
+                  type="button"
+                  onClick={() => patchCompany({ rateMonth: row.id })}
+                  className={`rounded-full px-3 py-1 ${
+                    state.company.rateMonth === row.id
+                      ? "bg-teal-500 text-slate-950"
+                      : "text-slate-600"
+                  }`}
+                >
+                  费率用{row.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard label="线索总量" value={formatInt(model.baseline.leads)} />
+            <KpiCard label={`${viewed.label}线索`} value={formatInt(viewed.leads)} />
             <KpiCard
-              label="平均转化率"
-              value={formatPct(model.baseline.conversionRate)}
-              hint={`新成交 ${formatInt(model.baseline.newDeals)}`}
+              label={`${viewed.label}转化率`}
+              value={formatPct(viewed.conversionRate)}
+              hint={`新成交 ${formatInt(viewed.newDeals)}`}
             />
             <KpiCard
-              label="新成交留存率"
-              value={formatPct(model.baseline.newRetentionRate)}
-              hint={`留存 ${formatInt(model.baseline.newRetained)} / 解约 ${formatInt(model.baseline.newCancel)}`}
+              label={`${viewed.label}新成交留存率`}
+              value={formatPct(viewed.newRetentionRate)}
+              hint={`留存 ${formatInt(viewed.newRetained)} / 解约 ${formatInt(viewed.newCancel)}`}
             />
             <KpiCard
-              label="到期续费率"
-              value={formatPct(model.baseline.renewalRate)}
-              hint={`到期 ${formatInt(model.baseline.expiringCount)}，解约 ${formatInt(model.baseline.expiryCancel)}`}
+              label={`${viewed.label}到期续费率`}
+              value={formatPct(viewed.renewalRate)}
+              hint={`到期 ${formatInt(viewed.expiringCount)}，解约 ${formatInt(viewed.expiryCancel)}`}
             />
           </div>
           <ProductBaselineTable
             products={state.products}
             model={model}
-            onChange={patchProduct}
+            viewMonth={viewMonth}
+            onChangeProduct={patchProduct}
+            onChangeMonth={patchProductMonth}
             onRemove={(id) =>
               setState((current) => ({
                 ...current,
@@ -361,24 +492,16 @@ export function OkrWorkbench() {
           <SectionTitle
             id="people-title"
             kicker="03 个人对接"
-            title="人均承接线索与群聊+私聊对接"
-            description="前端人数用于倒推下期编制；每个人的对接量用于看负荷分布，避免人均达标但少数人过载。"
+            title="7 月 / 8 月分月承接线索"
+            description="前端人数用于倒推规划月编制；人均产能默认取费率月（通常是 8 月），7 月只作负荷对照。"
           />
           <div className="grid gap-3 sm:grid-cols-3">
             <KpiCard
-              label="前端人均承接新线索"
+              label={`${model.baseline.label}前端人均承接`}
               value={formatNum(model.people.avgLeadsPerFrontend, 1)}
             />
-            <KpiCard
-              label="前端人均对接"
-              value={formatNum(model.people.avgHandoffFrontend, 1)}
-              hint="群聊 + 私聊"
-            />
-            <KpiCard
-              label="全员对接合计"
-              value={formatInt(model.people.totalHandoff)}
-              hint={`群 ${formatInt(model.people.totalGroup)} · 私 ${formatInt(model.people.totalPrivate)}`}
-            />
+            <KpiCard label="7月进线合计" value={formatInt(model.people.julyLeads)} />
+            <KpiCard label="8月进线合计" value={formatInt(model.people.augustLeads)} />
           </div>
           <PeoplePanel
             people={state.people}
@@ -403,8 +526,8 @@ export function OkrWorkbench() {
           <SectionTitle
             id="target-title"
             kicker="04 目标推演"
-            title={`从净增 ${formatSigned(state.company.targetIncrement)} 反推各产品线索与成交`}
-            description="不推在网总量。先按战略权重拆净增，再补下期到期解约，倒推毛成交和线索。"
+            title={`从${model.target.label}净增 ${formatSigned(model.target.targetIncrement)} 反推各产品线索与成交`}
+            description="9、10、11 月分别倒推。先按战略权重拆当月净增，再补当月到期解约。"
           />
           <TargetPanel model={model} />
         </section>
@@ -413,8 +536,8 @@ export function OkrWorkbench() {
           <SectionTitle
             id="staffing-title"
             kicker="05 人力与成本"
-            title="前端按线索产能、后端按单量外推、投放按付费缺口"
-            description="原方案的人数与成本公式都保留，同时给出更稳妥的付费预算口径。"
+            title={`${model.target.label}编制与投放：前端按线索、后端按单量、投放按付费缺口`}
+            description="人效和 CPL 取费率月（默认 8 月），自然线索产能按单月上限，不按 7+8 合计。"
           />
           <StaffingPanel
             company={state.company}
@@ -427,25 +550,25 @@ export function OkrWorkbench() {
           <SectionTitle
             id="guide-title"
             kicker="06 口径与方案"
-            title="把这套数当成经营模型，而不是一张静态报表"
-            description="考核的是净增 175，不是在网总量。下列词典和公式可直接贴进评审材料。"
+            title="把这套数当成按月经营模型"
+            description="考核的是 9 月 +175、10 月 +200、11 月 +225，不是两月加总，也不是在网总量。"
           />
-          <GuidePanel />
+          <GuidePanel monthTargets={state.company.monthTargets} />
         </section>
       </div>
 
       <div className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-3 text-xs sm:grid-cols-4 sm:px-6 lg:px-8">
           <p>
-            <span className="text-slate-500">目标净增</span>{" "}
+            <span className="text-slate-500">{model.target.label}目标</span>{" "}
             <span className="font-mono font-semibold">
               {formatSigned(model.target.targetIncrement)}
             </span>
           </p>
           <p>
-            <span className="text-slate-500">上期净增</span>{" "}
+            <span className="text-slate-500">7月 / 8月</span>{" "}
             <span className="font-mono font-semibold">
-              {formatSigned(model.baseline.increment)}
+              {formatSigned(model.july.increment)} / {formatSigned(model.august.increment)}
             </span>
           </p>
           <p>
