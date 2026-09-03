@@ -1,11 +1,22 @@
 import { formatInt } from "@/lib/okr/format";
 import type { PlanMonthId } from "@/lib/okr/types";
 
+const DEFAULT_TARGETS: Record<PlanMonthId, number> = {
+  "2026-09": 175,
+  "2026-10": 200,
+  "2026-11": 225,
+};
+
 export function GuidePanel({
-  monthTargets,
+  monthTargets = DEFAULT_TARGETS,
 }: {
-  monthTargets: Record<PlanMonthId, number>;
+  monthTargets?: Record<PlanMonthId, number>;
 }) {
+  const targets = {
+    "2026-09": monthTargets["2026-09"] ?? DEFAULT_TARGETS["2026-09"],
+    "2026-10": monthTargets["2026-10"] ?? DEFAULT_TARGETS["2026-10"],
+    "2026-11": monthTargets["2026-11"] ?? DEFAULT_TARGETS["2026-11"],
+  };
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -58,8 +69,8 @@ export function GuidePanel({
         <h3 className="text-sm font-semibold text-slate-900">建议 OKR 结构</h3>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           <strong className="text-slate-800">O：</strong>
-          9 月在网用户净增 {formatInt(monthTargets["2026-09"])}、10 月净增{" "}
-          {formatInt(monthTargets["2026-10"])}、11 月净增 {formatInt(monthTargets["2026-11"])}
+          9 月在网用户净增 {formatInt(targets["2026-09"])}、10 月净增{" "}
+          {formatInt(targets["2026-10"])}、11 月净增 {formatInt(targets["2026-11"])}
           ，且不靠牺牲续费或抬高付费 CPL 换量。不考核在网总量。
         </p>
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm leading-6 text-slate-600">

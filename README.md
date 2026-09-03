@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-打开 [http://localhost:3000](http://localhost:3000)。
+打开 [http://localhost:3000](http://localhost:3000)。云代理里请用 Cursor 页面上的 **Demo / 预览**（端口 3000），不要在自己电脑上打开 `localhost:3000`。
 
 公式自检：
 
