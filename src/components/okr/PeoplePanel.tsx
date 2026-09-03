@@ -39,7 +39,7 @@ export function PeoplePanel({
             <th className="px-3 py-3 font-medium">8月线索</th>
             <th className="px-3 py-3 font-medium">8月成交</th>
             <th className="px-3 py-3 font-medium">8月转化</th>
-            <th className="px-3 py-3 font-medium">{model.baseline.label}转化</th>
+            <th className="px-3 py-3 font-medium">费率月转化</th>
             <th className="px-3 py-3 font-medium" />
           </tr>
         </thead>
