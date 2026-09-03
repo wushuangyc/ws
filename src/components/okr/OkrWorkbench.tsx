@@ -195,7 +195,7 @@ export function OkrWorkbench() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl space-y-10 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-8 pb-28 sm:px-6 lg:px-8">
         <section className="space-y-5" id="overview">
           <SectionTitle
             id="overview-title"
@@ -437,7 +437,7 @@ export function OkrWorkbench() {
       </div>
 
       <div className="sticky bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto grid max-w-7xl gap-3 px-4 py-3 text-xs sm:grid-cols-4 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 py-3 text-xs sm:grid-cols-4 sm:px-6 lg:px-8">
           <p>
             <span className="text-slate-500">目标期末</span>{" "}
             <span className="font-mono font-semibold">{formatInt(model.target.targetClosing)}</span>
