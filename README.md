@@ -1,45 +1,28 @@
-# WS
+# 在网增长 OKR 工作台
 
-基于 **Next.js + TypeScript + Tailwind CSS** 的可运行 Web 起步项目。
+把 7–8 月产品在网、线索、成交、解约、续费和个人对接数据，反推下一周期净增 175 所需的线索、编制和付费预算。
 
-## 技术栈
-
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
-- ESLint
-
-## 快速开始
+## 本地运行
 
 ```bash
 npm install
 npm run dev
 ```
 
-浏览器访问 [http://localhost:3000](http://localhost:3000)。
+打开 [http://localhost:3000](http://localhost:3000)。
 
-## 常用脚本
+公式自检：
 
-| 命令 | 说明 |
-| --- | --- |
-| `npm run dev` | 启动开发服务器 |
-| `npm run build` | 构建生产版本 |
-| `npm run start` | 启动生产服务器 |
-| `npm run lint` | 运行 ESLint |
-
-## 项目结构
-
-```text
-src/
-  app/           # 路由与页面（App Router）
-  components/    # 通用布局组件（Header / Footer）
-.cursor/
-  environment.json  # Cursor Cloud Agent 环境配置
+```bash
+npm run test:okr
 ```
 
-## Cursor 环境
+## 页面里能做什么
 
-`.cursor/environment.json` 已配置：
+- 编辑各产品基线件数，自动反算转化率、留存率、续费率和在网增量
+- 按战略权重把 +175 拆到产品，并结合下期到期日历倒推线索
+- 统计每个人的线索承接与群聊+私聊对接，测算前端/后端编制
+- 对照原始付费成本公式与推荐的「付费缺口 × CPL」口径
+- 数据保存在浏览器本地，可导出 JSON
 
-- `install`: `npm install`
-- `start`: `npm run dev`
+当前预置的是一套内部一致的假设数据，替换真实数即可用于评审。
