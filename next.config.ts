@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     "*.cursor.sh",
     "*.oncursor.com",
     "*.static-cursor.com",
+    "*.trycloudflare.com",
+    "*.loca.lt",
   ],
   agentRules: false,
 };

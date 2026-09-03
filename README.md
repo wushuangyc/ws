@@ -2,7 +2,32 @@
 
 按自然月经营：7 月、8 月是两个独立参考月，用来看趋势，**不是**「7+8 合成上个周期」。规划月是 9、10、11 月，净增目标分别为 175、200、225。
 
-## 在自己电脑里打开
+## 用 Docker 在自己电脑里打开（推荐）
+
+本机已安装 Docker Desktop / Docker Compose 时，不必再装 Node：
+
+```bash
+git clone https://github.com/wushuangyc/ws.git
+cd ws
+git checkout cursor/okr-workbench-html-c8bd
+docker compose up --build
+```
+
+浏览器打开 [http://localhost:3000](http://localhost:3000)。
+
+仓库已经克隆过的话：
+
+```bash
+cd ws
+git fetch origin
+git checkout cursor/okr-workbench-html-c8bd
+git pull origin cursor/okr-workbench-html-c8bd
+docker compose up --build
+```
+
+本机 3000 已被占用时，改成 `docker compose up --build` 前先把 `docker-compose.yml` 里的 `"3000:3000"` 改成 `"3001:3000"`，然后打开 http://localhost:3001 。
+
+## 不用 Docker、直接用 Node
 
 先安装 [Node.js 20 或更新](https://nodejs.org/)（安装时勾选 npm）。然后打开终端，进入你放代码的文件夹：
 
