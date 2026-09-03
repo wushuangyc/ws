@@ -1,6 +1,6 @@
 import { monthLabel, PLAN_MONTHS, REFERENCE_MONTHS } from "./calendar";
 import { clamp, ratio } from "./format";
-import { personLeadsIn } from "./mock-data";
+import { countsTowardPeopleStats, personDealsIn, personLeadsIn } from "./mock-data";
 import type {
   AuditItem,
   CompanyInput,
@@ -271,20 +271,21 @@ export function buildOkrModel(state: OkrState): OkrModel {
   const references = [july, august];
   const baseline = rateMonth === "2026-07" ? july : august;
 
-  const frontend = state.people.filter((person) => person.role === "frontend");
-  const backend = state.people.filter((person) => person.role === "backend");
-  const julyLeads = sumBy(state.people, (person) => person.julyLeads);
-  const augustLeads = sumBy(state.people, (person) => person.augustLeads);
-  const leadsHandled = sumBy(state.people, (person) => personLeadsIn(person, rateMonth));
-  const totalGroup = sumBy(state.people, (person) => person.groupChats);
-  const totalPrivate = leadsHandled;
-  const totalHandoff = totalGroup + totalPrivate;
-  const avgLeadsPerFrontend = ratio(baseline.leads, frontend.length);
-  const avgHandoffPerPerson = ratio(totalHandoff, state.people.length);
-  const avgHandoffFrontend = ratio(
-    sumBy(frontend, (person) => person.groupChats + personLeadsIn(person, rateMonth)),
-    frontend.length,
-  );
+  const counted = state.people.filter(countsTowardPeopleStats);
+  const frontend = counted.filter((person) => person.role === "frontend");
+  const backend = counted.filter((person) => person.role === "backend");
+  const frontendActive = frontend.filter((person) => person.employment !== "departed");
+  const frontendDeparted = frontend.filter((person) => person.employment === "departed");
+  const frontendFte = frontendActive.length + frontendDeparted.length / 2;
+  const julyLeads = sumBy(counted, (person) => person.julyLeads);
+  const augustLeads = sumBy(counted, (person) => person.augustLeads);
+  const julyDeals = sumBy(counted, (person) => person.julyDeals);
+  const augustDeals = sumBy(counted, (person) => person.augustDeals);
+  const leadsHandled = sumBy(counted, (person) => personLeadsIn(person, rateMonth));
+  const dealsHandled = sumBy(counted, (person) => personDealsIn(person, rateMonth));
+  const avgLeadsPerFrontend = ratio(leadsHandled, frontendFte);
+  const avgDealsPerFrontend = ratio(dealsHandled, frontendFte);
+  const conversionRate = ratio(dealsHandled, leadsHandled);
 
   const plans = PLAN_MONTHS.map((row) =>
     buildPlan({
@@ -296,7 +297,7 @@ export function buildOkrModel(state: OkrState): OkrModel {
       conversionBuffer: state.company.conversionBuffer,
       organicLeadCapacity: state.company.organicLeadCapacity,
       previousPaidLeadCost: state.company.previousPaidLeadCost,
-      frontendCount: frontend.length,
+      frontendCount: frontendFte,
       backendCount: backend.length,
       avgLeadsPerFrontend,
     }),
@@ -313,24 +314,26 @@ export function buildOkrModel(state: OkrState): OkrModel {
     references,
     baseline,
     people: {
-      list: state.people,
+      list: counted,
       frontend,
       backend,
-      frontendCount: frontend.length,
+      frontendCount: frontendFte,
+      frontendFte,
+      frontendActiveCount: frontendActive.length,
+      frontendDepartedCount: frontendDeparted.length,
       backendCount: backend.length,
       leadsHandled,
       avgLeadsPerFrontend,
-      avgHandoffPerPerson,
-      avgHandoffFrontend,
-      totalGroup,
-      totalPrivate,
-      totalHandoff,
+      avgDealsPerFrontend,
+      conversionRate,
       julyLeads,
       augustLeads,
+      julyDeals,
+      augustDeals,
     },
     plans,
     target,
-    audit: buildAudit(state.company, [july, august], state.people, leadsHandled, baseline.leads),
+    audit: buildAudit(state.company, [july, august], counted, leadsHandled, baseline.leads),
     scenario,
   };
 }
@@ -400,8 +403,8 @@ function buildAudit(
   return items;
 }
 
-export function personHandoff(person: PersonInput, month: ReferenceMonthId = "2026-08"): number {
-  return person.groupChats + personLeadsIn(person, month);
+export function personConversion(leads: number, deals: number): number {
+  return ratio(deals, leads);
 }
 
 export { monthLabel, PLAN_MONTHS, REFERENCE_MONTHS };

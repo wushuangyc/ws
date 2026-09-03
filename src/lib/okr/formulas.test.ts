@@ -28,7 +28,8 @@ describe("monthly baselines are independent", () => {
     assert.equal(model.july.newDeals, 91);
     assert.equal(model.july.expiryCancel, 18);
     assert.equal(model.july.newRetained - model.july.expiryCancel, model.july.increment);
-    assert.equal(model.people.julyLeads, 255);
+    assert.equal(model.people.julyLeads, 252);
+    assert.equal(model.people.julyDeals, 127);
   });
 
   it("matches August actuals used as the rate month", () => {
@@ -36,9 +37,15 @@ describe("monthly baselines are independent", () => {
     assert.equal(model.august.newDeals, 147);
     assert.equal(model.august.expiryCancel, 15);
     assert.equal(model.august.increment, 132);
-    assert.equal(model.people.augustLeads, 265);
-    assert.equal(model.people.frontendCount, 7);
+    assert.equal(model.people.augustLeads, 262);
+    assert.equal(model.people.augustDeals, 133);
+    assert.equal(model.people.frontendActiveCount, 4);
+    assert.equal(model.people.frontendDepartedCount, 2);
+    assert.equal(model.people.frontendFte, 5);
+    assert.equal(model.people.frontendCount, 5);
     assert.equal(model.people.backendCount, 3);
+    assert.ok(!model.people.list.some((person) => person.name === "陈艳云"));
+    assert.ok(model.people.list.every((person) => person.role === "backend" || person.julyLeads + person.augustLeads > 0));
   });
 
   it("keeps product-level identities exact in both months", () => {
@@ -91,5 +98,34 @@ describe("Sep/Oct/Nov reverse planning", () => {
     const expected =
       (model.target.requiredGrossDeals / model.baseline.newDeals) * model.people.backendCount;
     assert.equal(model.target.backendNeeded, expected);
+  });
+});
+
+describe("people roster rules", () => {
+  const model = buildOkrModel(createDefaultState());
+  const names = model.people.list.map((person) => person.name);
+
+  it("drops 陈艳云 and zero-lead frontend, keeps backend", () => {
+    assert.deepEqual(
+      names.filter((name) => !["汤亚君", "曹洪燕", "彭慧泉"].includes(name)),
+      ["王迎", "张菁菁", "张丽俐", "陈语", "易惠宁", "徐楚郁"],
+    );
+  });
+
+  it("counts 张菁菁 and 张丽俐 as one FTE", () => {
+    const departed = model.people.frontend.filter((person) => person.employment === "departed");
+    assert.deepEqual(
+      departed.map((person) => person.name).sort(),
+      ["张丽俐", "张菁菁"],
+    );
+    assert.equal(model.people.frontendFte, 4 + 2 / 2);
+  });
+
+  it("exposes personal conversion from deals over leads", () => {
+    const wang = model.people.frontend.find((person) => person.name === "王迎");
+    assert.ok(wang);
+    assert.equal(wang.augustLeads, 75);
+    assert.equal(wang.augustDeals, 38);
+    assert.equal(model.people.conversionRate, 133 / 262);
   });
 });

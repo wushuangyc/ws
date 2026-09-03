@@ -2,6 +2,8 @@ export type ScenarioId = "conservative" | "base" | "aggressive";
 
 export type PersonRole = "frontend" | "backend";
 
+export type PersonEmployment = "active" | "departed";
+
 export type ReferenceMonthId = "2026-07" | "2026-08";
 
 export type PlanMonthId = "2026-09" | "2026-10" | "2026-11";
@@ -29,9 +31,11 @@ export type PersonInput = {
   id: string;
   name: string;
   role: PersonRole;
+  employment: PersonEmployment;
   julyLeads: number;
   augustLeads: number;
-  groupChats: number;
+  julyDeals: number;
+  augustDeals: number;
 };
 
 export type CompanyInput = {
@@ -168,16 +172,18 @@ export type OkrModel = {
     frontend: PersonInput[];
     backend: PersonInput[];
     frontendCount: number;
+    frontendFte: number;
+    frontendActiveCount: number;
+    frontendDepartedCount: number;
     backendCount: number;
     leadsHandled: number;
     avgLeadsPerFrontend: number;
-    avgHandoffPerPerson: number;
-    avgHandoffFrontend: number;
-    totalGroup: number;
-    totalPrivate: number;
-    totalHandoff: number;
+    avgDealsPerFrontend: number;
+    conversionRate: number;
     julyLeads: number;
     augustLeads: number;
+    julyDeals: number;
+    augustDeals: number;
   };
   plans: MonthPlan[];
   target: MonthPlan;

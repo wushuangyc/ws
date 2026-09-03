@@ -1,6 +1,7 @@
 import type {
   CompanyInput,
   OkrState,
+  PersonEmployment,
   PersonInput,
   ProductInput,
   ProductMonthInput,
@@ -8,8 +9,8 @@ import type {
 } from "./types";
 import { uid } from "./format";
 
-/** Bump when default snapshot shape changes so localStorage does not keep a two-month lump. */
-export const STORAGE_KEY = "okr-workbench-v3-monthly";
+/** Bump when people rows change so localStorage does not keep filtered or group-chat rows. */
+export const STORAGE_KEY = "okr-workbench-v4-people";
 
 function month(
   leads: number,
@@ -37,6 +38,9 @@ function month(
  * WIFI 到期：在网设备终止日落在该自然月、且未标解约
  * 付费线索：进线渠道 = 广告投放
  * 解约表最新到 2026-06，7/8 月新成交解约按 0
+ *
+ * 人员：陈艳云已剔除；线索合计为 0 的前端不计入；张菁菁、张丽俐为离职，两人计 1 编。
+ * 个人成交：业务成交表 7–8 月担当合计，按该人分月线索占比拆到 7/8 月。
  */
 export function createDefaultProducts(): ProductInput[] {
   return [
@@ -93,17 +97,38 @@ export function createDefaultProducts(): ProductInput[] {
 
 export function createDefaultPeople(): PersonInput[] {
   return [
-    { id: "p1", name: "王迎", role: "frontend", julyLeads: 68, augustLeads: 75, groupChats: 0 },
-    { id: "p2", name: "张菁菁", role: "frontend", julyLeads: 107, augustLeads: 18, groupChats: 0 },
-    { id: "p3", name: "张丽俐", role: "frontend", julyLeads: 70, augustLeads: 27, groupChats: 0 },
-    { id: "p4", name: "陈语", role: "frontend", julyLeads: 0, augustLeads: 73, groupChats: 0 },
-    { id: "p5", name: "易惠宁", role: "frontend", julyLeads: 0, augustLeads: 69, groupChats: 0 },
-    { id: "p6", name: "徐楚郁", role: "frontend", julyLeads: 7, augustLeads: 0, groupChats: 0 },
-    { id: "p7", name: "陈艳云", role: "frontend", julyLeads: 3, augustLeads: 3, groupChats: 0 },
-    { id: "p8", name: "汤亚君", role: "backend", julyLeads: 0, augustLeads: 0, groupChats: 0 },
-    { id: "p9", name: "曹洪燕", role: "backend", julyLeads: 0, augustLeads: 0, groupChats: 0 },
-    { id: "p10", name: "彭慧泉", role: "backend", julyLeads: 0, augustLeads: 0, groupChats: 0 },
+    person("p1", "王迎", "active", 68, 35, 75, 38),
+    person("p2", "张菁菁", "departed", 107, 61, 18, 10),
+    person("p3", "张丽俐", "departed", 70, 28, 27, 11),
+    person("p4", "陈语", "active", 0, 0, 73, 20),
+    person("p5", "易惠宁", "active", 0, 0, 69, 54),
+    person("p6", "徐楚郁", "active", 7, 3, 0, 0),
+    person("p8", "汤亚君", "active", 0, 0, 0, 0, "backend"),
+    person("p9", "曹洪燕", "active", 0, 0, 0, 0, "backend"),
+    person("p10", "彭慧泉", "active", 0, 0, 0, 0, "backend"),
   ];
+}
+
+function person(
+  id: string,
+  name: string,
+  employment: PersonEmployment,
+  julyLeads: number,
+  julyDeals: number,
+  augustLeads: number,
+  augustDeals: number,
+  role: PersonInput["role"] = "frontend",
+): PersonInput {
+  return {
+    id,
+    name,
+    role,
+    employment,
+    julyLeads,
+    julyDeals,
+    augustLeads,
+    augustDeals,
+  };
 }
 
 export function createDefaultCompany(): CompanyInput {
@@ -154,12 +179,28 @@ export function blankPerson(role: PersonInput["role"] = "frontend"): PersonInput
     id: uid("psn"),
     name: "新同事",
     role,
+    employment: "active",
     julyLeads: 0,
     augustLeads: 0,
-    groupChats: 0,
+    julyDeals: 0,
+    augustDeals: 0,
   };
 }
 
 export function personLeadsIn(person: PersonInput, month: ReferenceMonthId): number {
   return month === "2026-07" ? person.julyLeads : person.augustLeads;
+}
+
+export function personDealsIn(person: PersonInput, month: ReferenceMonthId): number {
+  return month === "2026-07" ? person.julyDeals : person.augustDeals;
+}
+
+export function personLeadTotal(person: PersonInput): number {
+  return person.julyLeads + person.augustLeads;
+}
+
+/** Frontend with no leads are early leavers and do not enter productivity math. Backend stay. */
+export function countsTowardPeopleStats(person: PersonInput): boolean {
+  if (person.role === "backend") return true;
+  return personLeadTotal(person) > 0;
 }

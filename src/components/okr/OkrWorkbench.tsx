@@ -31,7 +31,7 @@ import { useEffect, useMemo, useState } from "react";
 const NAV = [
   { href: "#overview", label: "总览" },
   { href: "#baseline", label: "基线盘点" },
-  { href: "#people", label: "个人对接" },
+  { href: "#people", label: "个人线索" },
   { href: "#target", label: "目标推演" },
   { href: "#staffing", label: "人力与成本" },
   { href: "#guide", label: "口径与方案" },
@@ -491,17 +491,29 @@ export function OkrWorkbench() {
         <section className="space-y-5" id="people">
           <SectionTitle
             id="people-title"
-            kicker="03 个人对接"
-            title="7 月 / 8 月分月承接线索"
-            description="前端人数用于倒推规划月编制；人均产能默认取费率月（通常是 8 月），7 月只作负荷对照。"
+            kicker="03 个人线索"
+            title="7 月 / 8 月分月线索、成交和转化率"
+            description="不统计群聊对接。0 线索前端不计入；陈艳云已从表内剔除。张菁菁、张丽俐按离职两人计 1 编。人均产能取费率月线索 ÷ 前端计编。"
           />
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
             <KpiCard
-              label={`${model.baseline.label}前端人均承接`}
+              label={`${model.baseline.label}前端人均线索`}
               value={formatNum(model.people.avgLeadsPerFrontend, 1)}
+              hint={`计编 ${formatNum(model.people.frontendFte, 1)} 人`}
             />
-            <KpiCard label="7月进线合计" value={formatInt(model.people.julyLeads)} />
-            <KpiCard label="8月进线合计" value={formatInt(model.people.augustLeads)} />
+            <KpiCard
+              label={`${model.baseline.label}前端人均成交`}
+              value={formatNum(model.people.avgDealsPerFrontend, 1)}
+            />
+            <KpiCard
+              label={`${model.baseline.label}转化率`}
+              value={formatPct(model.people.conversionRate)}
+              hint={`${model.baseline.label} 成交 ÷ 线索`}
+            />
+            <KpiCard
+              label="7月 / 8月线索"
+              value={`${formatInt(model.people.julyLeads)} / ${formatInt(model.people.augustLeads)}`}
+            />
           </div>
           <PeoplePanel
             people={state.people}

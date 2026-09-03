@@ -1,5 +1,5 @@
 import { NumberField } from "@/components/okr/NumberField";
-import { formatInt, formatMoney, formatNum } from "@/lib/okr/format";
+import { formatInt, formatMoney, formatNum, formatPct } from "@/lib/okr/format";
 import type { CompanyInput, OkrModel } from "@/lib/okr/types";
 
 export function StaffingPanel({
@@ -21,8 +21,19 @@ export function StaffingPanel({
             <dd className="font-mono">{formatNum(model.people.avgLeadsPerFrontend, 1)}</dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-slate-500">{model.baseline.label}前端人均对接（群+私）</dt>
-            <dd className="font-mono">{formatNum(model.people.avgHandoffFrontend, 1)}</dd>
+            <dt className="text-slate-500">{model.baseline.label}前端人均成交</dt>
+            <dd className="font-mono">{formatNum(model.people.avgDealsPerFrontend, 1)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-slate-500">{model.baseline.label}前端转化率</dt>
+            <dd className="font-mono">{formatPct(model.people.conversionRate)}</dd>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-slate-500">前端在职 / 离职 / 计编</dt>
+            <dd className="font-mono">
+              {model.people.frontendActiveCount} / {model.people.frontendDepartedCount} /{" "}
+              {formatNum(model.people.frontendFte, 1)}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
             <dt className="text-slate-500">{model.target.label}需线索</dt>
@@ -48,7 +59,7 @@ export function StaffingPanel({
           </div>
         </dl>
         <p className="mt-4 text-xs leading-5 text-slate-500">
-          前端按线索产能约束，后端按成交单量线性外推。若交付有明显批量/标准化空间，后端可按人效提升单独打折，不必与销售同步扩张。
+          前端按线索产能约束（离职 2 人计 1 编，0 线索前端不计入），后端按成交单量线性外推。若交付有明显批量/标准化空间，后端可按人效提升单独打折，不必与销售同步扩张。
         </p>
       </article>
 

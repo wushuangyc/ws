@@ -1,7 +1,13 @@
 import { NumberField } from "@/components/okr/NumberField";
-import { personHandoff } from "@/lib/okr/formulas";
-import { formatInt, formatNum } from "@/lib/okr/format";
-import type { OkrModel, PersonInput, PersonRole } from "@/lib/okr/types";
+import { personConversion } from "@/lib/okr/formulas";
+import { formatInt, formatNum, formatPct } from "@/lib/okr/format";
+import { personDealsIn, personLeadsIn } from "@/lib/okr/mock-data";
+import type { OkrModel, PersonEmployment, PersonInput, PersonRole } from "@/lib/okr/types";
+
+function conversionLabel(leads: number, deals: number): string {
+  if (!leads) return "—";
+  return formatPct(personConversion(leads, deals));
+}
 
 export function PeoplePanel({
   people,
@@ -16,32 +22,50 @@ export function PeoplePanel({
   onRemove: (id: string) => void;
   onAdd: (role: PersonRole) => void;
 }) {
+  const visible = people;
   const rateMonth = model.baseline.month;
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table className="min-w-[960px] w-full border-collapse text-sm">
+      <table className="min-w-[1100px] w-full border-collapse text-sm">
         <thead className="bg-slate-50 text-left text-xs text-slate-500">
           <tr>
             <th className="px-3 py-3 font-medium">姓名</th>
+            <th className="px-3 py-3 font-medium">状态</th>
             <th className="px-3 py-3 font-medium">角色</th>
             <th className="px-3 py-3 font-medium">7月线索</th>
+            <th className="px-3 py-3 font-medium">7月成交</th>
+            <th className="px-3 py-3 font-medium">7月转化</th>
             <th className="px-3 py-3 font-medium">8月线索</th>
-            <th className="px-3 py-3 font-medium">群聊对接</th>
-            <th className="px-3 py-3 font-medium">费率月对接</th>
+            <th className="px-3 py-3 font-medium">8月成交</th>
+            <th className="px-3 py-3 font-medium">8月转化</th>
+            <th className="px-3 py-3 font-medium">{model.baseline.label}转化</th>
             <th className="px-3 py-3 font-medium" />
           </tr>
         </thead>
         <tbody>
-          {people.map((person) => (
+          {visible.map((person) => (
             <tr key={person.id} className="border-t border-slate-100">
               <td className="px-3 py-3">
                 <input
                   aria-label={`${person.name}姓名`}
-                  className="w-28 rounded-md border border-slate-200 px-2 py-1 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                  className="w-24 rounded-md border border-slate-200 px-2 py-1 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
                   value={person.name}
                   onChange={(event) => onChange(person.id, { name: event.target.value })}
                 />
+              </td>
+              <td className="px-3 py-3">
+                <select
+                  aria-label={`${person.name}在职状态`}
+                  className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm outline-none focus:border-teal-600"
+                  value={person.employment}
+                  onChange={(event) =>
+                    onChange(person.id, { employment: event.target.value as PersonEmployment })
+                  }
+                >
+                  <option value="active">在职</option>
+                  <option value="departed">离职</option>
+                </select>
               </td>
               <td className="px-3 py-3">
                 <select
@@ -59,26 +83,43 @@ export function PeoplePanel({
               <td className="px-3 py-3">
                 <NumberField
                   ariaLabel={`${person.name}7月线索`}
+                  className="[&_input]:w-16"
                   value={person.julyLeads}
                   onChange={(julyLeads) => onChange(person.id, { julyLeads })}
                 />
               </td>
               <td className="px-3 py-3">
                 <NumberField
+                  ariaLabel={`${person.name}7月成交`}
+                  className="[&_input]:w-16"
+                  value={person.julyDeals}
+                  onChange={(julyDeals) => onChange(person.id, { julyDeals })}
+                />
+              </td>
+              <td className="px-3 py-3 font-mono text-slate-700">
+                {conversionLabel(person.julyLeads, person.julyDeals)}
+              </td>
+              <td className="px-3 py-3">
+                <NumberField
                   ariaLabel={`${person.name}8月线索`}
+                  className="[&_input]:w-16"
                   value={person.augustLeads}
                   onChange={(augustLeads) => onChange(person.id, { augustLeads })}
                 />
               </td>
               <td className="px-3 py-3">
                 <NumberField
-                  ariaLabel={`${person.name}群聊对接`}
-                  value={person.groupChats}
-                  onChange={(groupChats) => onChange(person.id, { groupChats })}
+                  ariaLabel={`${person.name}8月成交`}
+                  className="[&_input]:w-16"
+                  value={person.augustDeals}
+                  onChange={(augustDeals) => onChange(person.id, { augustDeals })}
                 />
               </td>
+              <td className="px-3 py-3 font-mono text-slate-700">
+                {conversionLabel(person.augustLeads, person.augustDeals)}
+              </td>
               <td className="px-3 py-3 font-mono font-medium">
-                {formatInt(personHandoff(person, rateMonth))}
+                {conversionLabel(personLeadsIn(person, rateMonth), personDealsIn(person, rateMonth))}
               </td>
               <td className="px-3 py-3">
                 <button
@@ -95,16 +136,25 @@ export function PeoplePanel({
         <tfoot className="border-t-2 border-slate-200 bg-slate-50">
           <tr>
             <td className="px-3 py-3 font-medium">合计 / 人均</td>
-            <td className="px-3 py-3 text-xs text-slate-500">
-              前端 {model.people.frontendCount} · 后端 {model.people.backendCount}
+            <td className="px-3 py-3 text-xs text-slate-500" colSpan={2}>
+              在职 {model.people.frontendActiveCount} · 离职 {model.people.frontendDepartedCount}
+              计 {formatNum(model.people.frontendDepartedCount / 2, 1)} 编 · 前端{" "}
+              {formatNum(model.people.frontendFte, 1)} 人 · 后端 {model.people.backendCount}
             </td>
             <td className="px-3 py-3 font-mono">{formatInt(model.people.julyLeads)}</td>
-            <td className="px-3 py-3 font-mono">{formatInt(model.people.augustLeads)}</td>
-            <td className="px-3 py-3 font-mono">{formatInt(model.people.totalGroup)}</td>
+            <td className="px-3 py-3 font-mono">{formatInt(model.people.julyDeals)}</td>
             <td className="px-3 py-3 font-mono">
-              {formatInt(model.people.totalHandoff)}
-              <p className="text-[11px] text-slate-500">
-                {model.baseline.label}前端人均 {formatNum(model.people.avgHandoffFrontend, 1)}
+              {conversionLabel(model.people.julyLeads, model.people.julyDeals)}
+            </td>
+            <td className="px-3 py-3 font-mono">{formatInt(model.people.augustLeads)}</td>
+            <td className="px-3 py-3 font-mono">{formatInt(model.people.augustDeals)}</td>
+            <td className="px-3 py-3 font-mono">
+              {conversionLabel(model.people.augustLeads, model.people.augustDeals)}
+            </td>
+            <td className="px-3 py-3 font-mono">
+              {formatPct(model.people.conversionRate)}
+              <p className="text-[11px] font-normal text-slate-500">
+                {model.baseline.label}人均线索 {formatNum(model.people.avgLeadsPerFrontend, 1)}
               </p>
             </td>
             <td className="px-3 py-3">
