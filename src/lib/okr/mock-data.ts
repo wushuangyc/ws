@@ -10,7 +10,7 @@ import type {
 import { uid } from "./format";
 
 /** Bump when people rows change so localStorage does not keep filtered or group-chat rows. */
-export const STORAGE_KEY = "okr-workbench-v4-people";
+export const STORAGE_KEY = "okr-workbench-v5-roster";
 
 function month(
   leads: number,
@@ -39,7 +39,7 @@ function month(
  * 付费线索：进线渠道 = 广告投放
  * 解约表最新到 2026-06，7/8 月新成交解约按 0
  *
- * 人员：陈艳云已剔除；线索合计为 0 的前端不计入；张菁菁、张丽俐为离职，两人计 1 编。
+ * 人员：陈艳云、徐楚郁、汤亚君、曹洪燕、彭慧泉不纳入统计；线索合计为 0 的前端不计入；张菁菁、张丽俐为离职，两人计 1 编。
  * 个人成交：业务成交表 7–8 月担当合计，按该人分月线索占比拆到 7/8 月。
  */
 export function createDefaultProducts(): ProductInput[] {
@@ -95,6 +95,8 @@ export function createDefaultProducts(): ProductInput[] {
   ];
 }
 
+export const EXCLUDED_PEOPLE_NAMES = new Set(["徐楚郁", "汤亚君", "曹洪燕", "彭慧泉", "陈艳云"]);
+
 export function createDefaultPeople(): PersonInput[] {
   return [
     person("p1", "王迎", "active", 68, 35, 75, 38),
@@ -102,10 +104,6 @@ export function createDefaultPeople(): PersonInput[] {
     person("p3", "张丽俐", "departed", 70, 28, 27, 11),
     person("p4", "陈语", "active", 0, 0, 73, 20),
     person("p5", "易惠宁", "active", 0, 0, 69, 54),
-    person("p6", "徐楚郁", "active", 7, 3, 0, 0),
-    person("p8", "汤亚君", "active", 0, 0, 0, 0, "backend"),
-    person("p9", "曹洪燕", "active", 0, 0, 0, 0, "backend"),
-    person("p10", "彭慧泉", "active", 0, 0, 0, 0, "backend"),
   ];
 }
 
@@ -199,8 +197,9 @@ export function personLeadTotal(person: PersonInput): number {
   return person.julyLeads + person.augustLeads;
 }
 
-/** Frontend with no leads are early leavers and do not enter productivity math. Backend stay. */
+/** Drop named exclusions; zero-lead frontend also stay out of productivity math. */
 export function countsTowardPeopleStats(person: PersonInput): boolean {
+  if (EXCLUDED_PEOPLE_NAMES.has(person.name)) return false;
   if (person.role === "backend") return true;
   return personLeadTotal(person) > 0;
 }

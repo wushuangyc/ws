@@ -493,7 +493,7 @@ export function OkrWorkbench() {
             id="people-title"
             kicker="03 个人线索"
             title="7 月 / 8 月分月线索、成交和转化率"
-            description="不统计群聊对接。0 线索前端不计入；陈艳云已从表内剔除。张菁菁、张丽俐按离职两人计 1 编。人均产能取费率月线索 ÷ 前端计编。"
+            description="不统计群聊对接。徐楚郁、汤亚君、曹洪燕、彭慧泉、陈艳云不纳入统计。张菁菁、张丽俐按离职两人计 1 编。人均产能取费率月线索 ÷ 前端计编。"
           />
           <div className="grid gap-3 sm:grid-cols-4">
             <KpiCard

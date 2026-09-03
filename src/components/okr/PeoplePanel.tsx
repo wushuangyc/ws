@@ -1,7 +1,7 @@
 import { NumberField } from "@/components/okr/NumberField";
 import { personConversion } from "@/lib/okr/formulas";
 import { formatInt, formatNum, formatPct } from "@/lib/okr/format";
-import { personDealsIn, personLeadsIn } from "@/lib/okr/mock-data";
+import { EXCLUDED_PEOPLE_NAMES, personDealsIn, personLeadsIn } from "@/lib/okr/mock-data";
 import type { OkrModel, PersonEmployment, PersonInput, PersonRole } from "@/lib/okr/types";
 
 function conversionLabel(leads: number, deals: number): string {
@@ -22,7 +22,7 @@ export function PeoplePanel({
   onRemove: (id: string) => void;
   onAdd: (role: PersonRole) => void;
 }) {
-  const visible = people;
+  const visible = people.filter((person) => !EXCLUDED_PEOPLE_NAMES.has(person.name));
   const rateMonth = model.baseline.month;
 
   return (
