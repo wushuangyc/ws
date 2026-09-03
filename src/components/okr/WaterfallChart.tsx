@@ -6,6 +6,36 @@ type WaterfallStep = {
   tone: "base" | "up" | "down" | "end";
 };
 
+const PLOT_HEIGHT = 168;
+
+function layoutSteps(steps: WaterfallStep[]) {
+  let cursor = 0;
+  const laidOut = steps.map((step, index) => {
+    const isTotal = index === 0 || step.tone === "end";
+    if (isTotal) {
+      cursor = step.value;
+      return { ...step, base: 0, magnitude: Math.abs(step.value) };
+    }
+    const magnitude = Math.abs(step.value);
+    if (step.value >= 0) {
+      const base = cursor;
+      cursor += step.value;
+      return { ...step, base, magnitude };
+    }
+    cursor += step.value;
+    return { ...step, base: cursor, magnitude };
+  });
+
+  const max = Math.max(...laidOut.map((step) => step.base + step.magnitude), 1);
+  return laidOut.map((step) => {
+    const rawBar = (step.magnitude / max) * PLOT_HEIGHT;
+    const barHeight = step.magnitude === 0 ? 0 : Math.max(8, rawBar);
+    const rawBase = (step.base / max) * PLOT_HEIGHT;
+    const offset = Math.min(rawBase, Math.max(0, PLOT_HEIGHT - barHeight));
+    return { ...step, barHeight, offset };
+  });
+}
+
 export function WaterfallChart({
   title,
   steps,
@@ -13,40 +43,16 @@ export function WaterfallChart({
   title: string;
   steps: WaterfallStep[];
 }) {
-  const start = steps[0]?.value ?? 0;
-  const running: number[] = [];
-  let cursor = 0;
-  steps.forEach((step, index) => {
-    if (index === 0 || step.tone === "end") {
-      running.push(0);
-      cursor = step.value;
-      return;
-    }
-    if (step.value >= 0) {
-      running.push(cursor);
-      cursor += step.value;
-      return;
-    }
-    running.push(cursor + step.value);
-    cursor += step.value;
-  });
-
-  const max = Math.max(
-    start,
-    ...steps.map((step, index) =>
-      step.tone === "end" || index === 0 ? step.value : running[index] + Math.abs(step.value),
-    ),
-    1,
-  );
+  const columns = layoutSteps(steps);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {steps.map((step, index) => {
-          const magnitude = step.tone === "end" || index === 0 ? step.value : Math.abs(step.value);
-          const height = Math.max(8, (magnitude / max) * 140);
-          const offset = ((running[index] ?? 0) / max) * 140;
+      <div
+        className="mt-5 grid gap-3"
+        style={{ gridTemplateColumns: `repeat(${Math.max(columns.length, 1)}, minmax(0, 1fr))` }}
+      >
+        {columns.map((step) => {
           const color =
             step.tone === "up"
               ? "bg-teal-600"
@@ -55,15 +61,21 @@ export function WaterfallChart({
                 : step.tone === "end"
                   ? "bg-slate-900"
                   : "bg-slate-400";
+          const rounded = step.offset > 0 ? "rounded-sm" : "rounded-t-md";
           return (
-            <div key={step.label} className="flex flex-col items-center">
-              <div className="relative h-[140px] w-full max-w-[72px]">
+            <div key={step.label} className="flex min-w-0 flex-col items-center">
+              <div
+                className="relative flex w-full max-w-[72px] flex-col justify-end"
+                style={{ height: PLOT_HEIGHT }}
+              >
+                <div className="absolute inset-x-2 inset-y-0 rounded-md bg-slate-100" />
                 <div
-                  className={`absolute bottom-0 left-1/2 w-10 -translate-x-1/2 rounded-t-md ${color}`}
-                  style={{ height, bottom: offset }}
+                  className={`relative z-10 w-10 self-center ${rounded} ${color}`}
+                  style={{ height: step.barHeight }}
                 />
+                <div className="relative w-full shrink-0" style={{ height: step.offset }} />
               </div>
-              <p className="mt-3 text-center text-xs text-slate-500">{step.label}</p>
+              <p className="mt-3 text-center text-xs leading-4 text-slate-500">{step.label}</p>
               <p className="font-mono text-sm font-semibold tabular-nums text-slate-900">
                 {step.tone === "up" || step.tone === "down"
                   ? formatSigned(step.value)
