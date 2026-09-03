@@ -334,9 +334,9 @@ function buildAudit(
 
   items.push({
     id: "lead-match",
-    ok: Math.abs(leadsHandled - productLeads) <= 1,
+    ok: Math.abs(leadsHandled - productLeads) <= Math.max(20, productLeads * 0.08),
     label: "线索口径对齐",
-    detail: `销售承接线索合计 ${leadsHandled}，产品线索合计 ${productLeads}。差距过大说明个人台账与产品台账未对上。`,
+    detail: `销售承接线索合计 ${leadsHandled}（按进线条数），产品线索合计 ${productLeads}（按业务类型，多产品进线可重复计）。差距来自未分类进线或一客多业务，不一定是台账错误。`,
   });
 
   items.push({

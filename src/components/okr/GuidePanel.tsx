@@ -26,7 +26,7 @@ export function GuidePanel() {
           </li>
           <li>
             <strong className="text-slate-800">对接数</strong>
-            ：群聊客户数 + 私聊客户数，衡量销售触达负荷，不是消息条数。
+            ：群聊客户数 + 私聊客户数。本表无群聊字段，私聊对接暂按进线条数。
           </li>
         </ul>
       </article>
@@ -66,11 +66,16 @@ export function GuidePanel() {
       <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-slate-900">使用方法</h3>
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-600">
-          <li>把 7/1–8/31 真实数据替换假设表；个人台账线索合计应与产品线索对齐。</li>
-          <li>用到期日历填「下期到期」，不要估算。这是净增目标能否成立的最大变量。</li>
-          <li>先看基准情景能不能靠现有人效打到 +175；不能则看编制与付费预算，而不是先加转化率。</li>
-          <li>战略权重往高客单、高留存产品倾斜；体验课只承担获客，不扛净增。</li>
-          <li>承诺用保守或基准，冲刺用进取。三个情景的线索差，就是需要准备的弹性预算。</li>
+          <li>
+            当前底数来自 MOBIUS 业绩表：线索看「客户进线」，成交看「业务成交」新购+复购，WIFI
+            到期看「WIFI在网设备」终止日。
+          </li>
+          <li>
+            号卡/宽带/电力没有在网台账，期初用 2026 上半年新购+复购累计，是下限不是全量库存。
+          </li>
+          <li>解约表最新到 6 月，7–8 月新成交解约按 0；补上 8 月解约后请改「新成交解约」。</li>
+          <li>表内无投放成本，付费预算需手工填「上期付费线索总成本」才会算出金额。</li>
+          <li>战略权重默认向电力、WIFI 倾斜；承诺用基准或保守，进取只作冲刺上限。</li>
         </ol>
       </article>
     </div>

@@ -1,99 +1,106 @@
 import type { OkrState, PersonInput, ProductInput } from "./types";
 import { uid } from "./format";
 
-export const STORAGE_KEY = "okr-workbench-v1";
+/** Bump when default snapshot changes so localStorage does not keep stale hypothetical rows. */
+export const STORAGE_KEY = "okr-workbench-v2-mobius";
 
+/**
+ * 2026-07-01 ~ 2026-08-31 from MOBIUS业绩表格.xlsx
+ *
+ * 线索：客户进线（电力/号卡/WIFI/宽带，多业务进线可记到多个产品）
+ * 新成交：业务成交的新购+复购（续约另记到期续费）
+ * WIFI 期初：在网设备表 6/30 仍在网 329 + 4/25–6/30 新购复购 78
+ * 号卡/宽带/电力期初：表无在网底账，用 2026 H1 新购+复购累计作可核对下限
+ * 解约表最新到 2026-06，本期新成交解约按 0；WIFI 到期来自设备终止日
+ */
 export function createDefaultProducts(): ProductInput[] {
   return [
     {
-      id: "flagship",
-      name: "旗舰会员（年）",
-      ticketPrice: 6800,
-      openingOnline: 420,
-      leads: 380,
-      newDeals: 55,
-      newCancel: 6,
-      expiringCount: 48,
-      renewedCount: 37,
-      nextExpiringCount: 52,
-      paidLeadShare: 0.62,
-      strategicWeight: 1.4,
-    },
-    {
-      id: "advanced",
-      name: "进阶课（季）",
-      ticketPrice: 2980,
-      openingOnline: 680,
-      leads: 920,
-      newDeals: 92,
-      newCancel: 14,
-      expiringCount: 85,
-      renewedCount: 53,
-      nextExpiringCount: 90,
-      paidLeadShare: 0.58,
-      strategicWeight: 1.1,
-    },
-    {
-      id: "starter",
-      name: "体验课（月）",
-      ticketPrice: 680,
-      openingOnline: 510,
-      leads: 1750,
-      newDeals: 140,
-      newCancel: 31,
-      expiringCount: 160,
-      renewedCount: 77,
-      nextExpiringCount: 168,
-      paidLeadShare: 0.7,
-      strategicWeight: 0.7,
-    },
-    {
-      id: "enterprise",
-      name: "企业服务（年）",
-      ticketPrice: 28000,
-      openingOnline: 86,
-      leads: 72,
-      newDeals: 18,
-      newCancel: 1,
-      expiringCount: 12,
-      renewedCount: 10,
-      nextExpiringCount: 14,
-      paidLeadShare: 0.35,
+      id: "electricity",
+      name: "电力",
+      ticketPrice: 0,
+      openingOnline: 82,
+      leads: 166,
+      newDeals: 120,
+      newCancel: 0,
+      expiringCount: 0,
+      renewedCount: 0,
+      nextExpiringCount: 0,
+      paidLeadShare: 0,
       strategicWeight: 1.6,
+    },
+    {
+      id: "wifi",
+      name: "WIFI",
+      ticketPrice: 57000,
+      openingOnline: 407,
+      leads: 206,
+      newDeals: 63,
+      newCancel: 0,
+      expiringCount: 66,
+      renewedCount: 33,
+      nextExpiringCount: 87,
+      paidLeadShare: 87 / 206,
+      strategicWeight: 1.2,
+    },
+    {
+      id: "sim",
+      name: "号卡",
+      ticketPrice: 12000,
+      openingOnline: 121,
+      leads: 65,
+      newDeals: 46,
+      newCancel: 0,
+      expiringCount: 0,
+      renewedCount: 0,
+      nextExpiringCount: 0,
+      paidLeadShare: 17 / 65,
+      strategicWeight: 1,
+    },
+    {
+      id: "broadband",
+      name: "宽带",
+      ticketPrice: 34000,
+      openingOnline: 28,
+      leads: 76,
+      newDeals: 9,
+      newCancel: 0,
+      expiringCount: 0,
+      renewedCount: 0,
+      nextExpiringCount: 0,
+      paidLeadShare: 3 / 76,
+      strategicWeight: 0.5,
     },
   ];
 }
 
 export function createDefaultPeople(): PersonInput[] {
   return [
-    { id: "p1", name: "张敏", role: "frontend", newLeadsHandled: 480, groupChats: 86, privateChats: 142 },
-    { id: "p2", name: "李强", role: "frontend", newLeadsHandled: 445, groupChats: 78, privateChats: 128 },
-    { id: "p3", name: "王芳", role: "frontend", newLeadsHandled: 410, groupChats: 72, privateChats: 118 },
-    { id: "p4", name: "赵伟", role: "frontend", newLeadsHandled: 385, groupChats: 65, privateChats: 105 },
-    { id: "p5", name: "陈静", role: "frontend", newLeadsHandled: 360, groupChats: 60, privateChats: 98 },
-    { id: "p6", name: "刘洋", role: "frontend", newLeadsHandled: 335, groupChats: 55, privateChats: 90 },
-    { id: "p7", name: "黄蕾", role: "frontend", newLeadsHandled: 360, groupChats: 62, privateChats: 102 },
-    { id: "p8", name: "马超", role: "frontend", newLeadsHandled: 347, groupChats: 58, privateChats: 95 },
-    { id: "p9", name: "周宁", role: "backend", newLeadsHandled: 0, groupChats: 40, privateChats: 55 },
-    { id: "p10", name: "吴磊", role: "backend", newLeadsHandled: 0, groupChats: 36, privateChats: 48 },
-    { id: "p11", name: "孙悦", role: "backend", newLeadsHandled: 0, groupChats: 32, privateChats: 44 },
-    { id: "p12", name: "郑浩", role: "backend", newLeadsHandled: 0, groupChats: 28, privateChats: 40 },
-    { id: "p13", name: "钱峰", role: "backend", newLeadsHandled: 0, groupChats: 30, privateChats: 42 },
+    { id: "p1", name: "王迎", role: "frontend", newLeadsHandled: 143, groupChats: 0, privateChats: 143 },
+    { id: "p2", name: "张菁菁", role: "frontend", newLeadsHandled: 125, groupChats: 0, privateChats: 125 },
+    { id: "p3", name: "张丽俐", role: "frontend", newLeadsHandled: 97, groupChats: 0, privateChats: 97 },
+    { id: "p4", name: "陈语", role: "frontend", newLeadsHandled: 73, groupChats: 0, privateChats: 73 },
+    { id: "p5", name: "易惠宁", role: "frontend", newLeadsHandled: 69, groupChats: 0, privateChats: 69 },
+    { id: "p6", name: "徐楚郁", role: "frontend", newLeadsHandled: 7, groupChats: 0, privateChats: 7 },
+    { id: "p7", name: "陈艳云", role: "frontend", newLeadsHandled: 6, groupChats: 0, privateChats: 6 },
+    { id: "p8", name: "汤亚君", role: "backend", newLeadsHandled: 0, groupChats: 0, privateChats: 0 },
+    { id: "p9", name: "曹洪燕", role: "backend", newLeadsHandled: 0, groupChats: 0, privateChats: 0 },
+    { id: "p10", name: "彭慧泉", role: "backend", newLeadsHandled: 0, groupChats: 0, privateChats: 0 },
   ];
 }
 
 export function createDefaultState(): OkrState {
   return {
     company: {
-      baselineLabel: "2026年7–8月基线",
+      baselineLabel: "2026年7–8月基线（MOBIUS业绩表）",
       baselineStart: "2026-07-01",
       baselineEnd: "2026-08-31",
       targetLabel: "2026年9–10月目标周期",
       targetStart: "2026-09-01",
       targetEnd: "2026-10-31",
       targetIncrement: 175,
-      previousPaidLeadCost: 186000,
-      organicLeadCapacity: 1150,
+      previousPaidLeadCost: 0,
+      organicLeadCapacity: 409,
       conversionBuffer: 1,
       scenario: "base",
     },

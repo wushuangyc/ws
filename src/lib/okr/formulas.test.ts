@@ -25,18 +25,18 @@ describe("buildOkrModel baseline identities", () => {
   });
 
   it("matches the designed 7-8 month snapshot", () => {
-    assert.equal(model.baseline.openingOnline, 1696);
-    assert.equal(model.baseline.closingOnline, 1821);
-    assert.equal(model.baseline.increment, 125);
-    assert.equal(model.baseline.leads, 3122);
-    assert.equal(model.baseline.newDeals, 305);
-    assert.equal(model.baseline.newCancel, 52);
-    assert.equal(model.baseline.newRetained, 253);
-    assert.equal(model.baseline.expiryCancel, 128);
-    assert.equal(model.baseline.renewedCount, 177);
-    assert.equal(model.people.leadsHandled, 3122);
-    assert.equal(model.people.frontendCount, 8);
-    assert.equal(model.people.backendCount, 5);
+    assert.equal(model.baseline.openingOnline, 638);
+    assert.equal(model.baseline.closingOnline, 843);
+    assert.equal(model.baseline.increment, 205);
+    assert.equal(model.baseline.leads, 513);
+    assert.equal(model.baseline.newDeals, 238);
+    assert.equal(model.baseline.newCancel, 0);
+    assert.equal(model.baseline.newRetained, 238);
+    assert.equal(model.baseline.expiryCancel, 33);
+    assert.equal(model.baseline.renewedCount, 33);
+    assert.equal(model.people.leadsHandled, 520);
+    assert.equal(model.people.frontendCount, 7);
+    assert.equal(model.people.backendCount, 3);
   });
 
   it("uses 新成交留存 − 到期解约 as net increment", () => {
@@ -61,7 +61,7 @@ describe("target reverse planning", () => {
       model.target.targetIncrement + model.target.nextExpiryCancel,
     );
     assert.equal(model.target.projectedIncrement, 175);
-    assert.equal(model.target.targetClosing, 1821 + 175);
+    assert.equal(model.target.targetClosing, 843 + 175);
   });
 
   it("backs into leads from conversion and retention", () => {

@@ -125,7 +125,7 @@ export function OkrWorkbench() {
               <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
                 统计周期 {state.company.baselineStart} 至 {state.company.baselineEnd} 为基线，
                 {state.company.targetStart} 至 {state.company.targetEnd} 为承诺期。
-                当前为假设数据，改数后公式会立即重算，并保存在本机。
+                产品为电力、号卡、WIFI、宽带，已按 MOBIUS 业绩表 7–8 月实数汇总；改数后即时重算并保存在本机。
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -189,7 +189,7 @@ export function OkrWorkbench() {
               onClick={() => setState(createDefaultState())}
               className="rounded-full border border-slate-600 px-3 py-1.5 text-xs text-slate-200 hover:border-white"
             >
-              恢复假设数据
+              恢复表内数据
             </button>
           </div>
         </div>
