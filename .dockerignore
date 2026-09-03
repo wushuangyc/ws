@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+.git
+.github
+coverage
+*.xlsx
+*.pem
+npm-debug.log*
+.env*
+README.md
+AGENTS.md
+CLAUDE.md
