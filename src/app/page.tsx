@@ -98,6 +98,14 @@ export default function Home() {
         <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-500">
           原表中的电话与微信已隐去。客户以代号呈现。签约日期跨度约 2025-02 至 2026-06。
         </p>
+        <p className="mt-5">
+          <a
+            href="/survey-analysis.html"
+            className="inline-flex h-11 items-center rounded-lg bg-teal-800 px-5 text-sm font-medium text-amber-50 transition-colors hover:bg-teal-700"
+          >
+            打开独立 HTML
+          </a>
+        </p>
       </section>
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -30,6 +30,12 @@ export function Header() {
               {link.label}
             </a>
           ))}
+          <a
+            href="/survey-analysis.html"
+            className="rounded-md bg-teal-800 px-3 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-teal-700"
+          >
+            独立 HTML
+          </a>
         </nav>
       </div>
     </header>
